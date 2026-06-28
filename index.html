@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open Rack Builder</title>
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/rack.css" />
+  <link rel="stylesheet" href="css/sidebar.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- Header bar -->
+    <header class="header">
+      <div class="header-left">
+        <div class="window-buttons" aria-hidden="true">
+          <span class="wb wb-close"></span>
+          <span class="wb wb-min"></span>
+          <span class="wb wb-max"></span>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <span id="project-name" class="project-name" contenteditable="true"
+              spellcheck="false">Untitled rack</span>
+      </div>
+
+      <div class="header-right">
+        <div class="segmented" id="view-control" role="group" aria-label="View">
+          <button class="seg" data-view="front">Front</button>
+          <button class="seg" data-view="rear">Rear</button>
+          <button class="seg" data-view="side">Side</button>
+        </div>
+        <button class="icon-btn" id="theme-toggle" title="Toggle light / dark" aria-label="Toggle theme">
+          <span class="theme-icon"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Menu bar -->
+    <nav class="menubar" id="menubar">
+      <div class="menu" data-menu>
+        <button class="menu-label">File</button>
+        <div class="menu-dropdown">
+          <button data-action="new-project">New project…</button>
+          <button data-action="save">Save</button>
+          <button data-action="import">Open file…</button>
+          <button data-action="export-json">Save a copy (.json)…</button>
+        </div>
+      </div>
+      <div class="menu" data-menu>
+        <button class="menu-label">Edit</button>
+        <div class="menu-dropdown">
+          <button data-action="remove-selected">Remove selected device</button>
+          <button data-action="deselect">Deselect</button>
+          <div class="menu-sep"></div>
+          <button data-action="clear-rack" class="menu-danger">Clear rack…</button>
+        </div>
+      </div>
+      <div class="menu" data-menu>
+        <button class="menu-label">View</button>
+        <div class="menu-dropdown">
+          <button data-action="view-front">Front</button>
+          <button data-action="view-rear">Rear</button>
+          <button data-action="view-side">Side</button>
+          <div class="menu-sep"></div>
+          <button data-action="zoom-reset">Reset zoom</button>
+          <button data-action="toggle-theme">Toggle light / dark</button>
+        </div>
+      </div>
+      <div class="menu" data-menu>
+        <button class="menu-label">Rack</button>
+        <div class="menu-dropdown">
+          <button data-action="add-u">Add 1U</button>
+          <button data-action="remove-u">Remove 1U</button>
+          <div class="menu-sep"></div>
+          <button data-action="size-8">Set 8U</button>
+          <button data-action="size-12">Set 12U</button>
+          <button data-action="size-24">Set 24U</button>
+          <button data-action="size-42">Set 42U</button>
+        </div>
+      </div>
+      <div class="menu" data-menu>
+        <button class="menu-label">Export</button>
+        <div class="menu-dropdown">
+          <button data-action="export-pdf">Print / PDF…</button>
+          <button data-action="export-json">Project file (.json)…</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main three-column area -->
+    <main class="main">
+
+      <!-- Left sidebar: device library -->
+      <aside class="sidebar sidebar-left">
+        <div class="sidebar-head">
+          <input type="search" id="library-search" class="search-input"
+                 placeholder="Search devices" spellcheck="false" />
+        </div>
+        <div class="sidebar-body" id="library-list"></div>
+        <div class="sidebar-foot">
+          <button class="btn btn-block" id="add-custom-btn">+ Add custom device</button>
+        </div>
+      </aside>
+
+      <!-- Center canvas -->
+      <section class="canvas" id="canvas">
+        <div class="canvas-stage" id="canvas-stage">
+          <div class="rack-mount" id="rack-mount"></div>
+        </div>
+        <div class="zoom-readout" id="zoom-readout">100%</div>
+      </section>
+
+      <!-- Right sidebar: properties -->
+      <aside class="sidebar sidebar-right">
+        <div class="props-zone props-global" id="rack-settings"></div>
+        <div class="props-zone props-device" id="device-props"></div>
+      </aside>
+
+    </main>
+  </div>
+
+  <!-- Modal host -->
+  <div class="modal-host" id="modal-host" hidden></div>
+
+  <!-- Hidden file input for import -->
+  <input type="file" id="file-input" accept="application/json,.json" hidden />
+
+  <!-- Scripts: load order matters (no modules, file:// friendly) -->
+  <script src="js/state.js"></script>
+  <script src="js/library.js"></script>
+  <script src="js/rack.js"></script>
+  <script src="js/props.js"></script>
+  <script src="js/persist.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

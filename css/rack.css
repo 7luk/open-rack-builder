@@ -1,0 +1,296 @@
+/* rack.css — rack frame, slots, device faceplates, view modes */
+
+.canvas {
+  position: relative;
+  background: var(--surface-1);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canvas-stage {
+  transform-origin: center center;
+  transition: transform 0.06s linear;
+  will-change: transform;
+}
+
+.rack-mount {
+  display: flex;
+  justify-content: center;
+}
+
+/* ---------- Rack plate ---------- */
+.rack-plate {
+  position: relative;
+  background: var(--surface-0);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow-rack);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 26px 1fr 26px;
+  gap: 0;
+}
+
+/* rails */
+.rail {
+  position: relative;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+}
+.rail-left {
+  align-items: center;
+}
+.rail-right {
+  align-items: center;
+}
+
+/* one rail cell per U */
+.rail-cell {
+  height: var(--u-height);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  position: relative;
+}
+.rail-cell:not(:last-child) {
+  border-bottom: 1px dashed var(--border);
+}
+.screw {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--surface-0);
+  border: 1px solid var(--border-strong);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.18);
+}
+.u-number {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* slot area between rails */
+.slots {
+  position: relative;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      var(--surface-1) 0,
+      var(--surface-1) calc(var(--u-height) - 1px),
+      var(--border) calc(var(--u-height) - 1px),
+      var(--border) var(--u-height)
+    );
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+/* empty slot drop targets (one per U) */
+.slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--u-height);
+}
+.slot.drop-ok {
+  background: var(--accent-weak);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.slot.drop-bad {
+  background: var(--danger-weak);
+  box-shadow: inset 0 0 0 2px var(--danger);
+}
+
+/* ---------- Device faceplate (front) ---------- */
+.device {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 10px;
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.device.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.device-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--led-off);
+}
+.device-led.on {
+  background: var(--led-on);
+  box-shadow: 0 0 5px var(--led-on);
+}
+
+.device-labels {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.device-name {
+  font-weight: var(--fw-medium);
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.device-brand {
+  font-size: 10px;
+  opacity: 0.72;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-knobs {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.knob {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+/* ---------- Rear view ---------- */
+.device.rear {
+  background: var(--surface-2) !important;
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  justify-content: space-between;
+}
+.device.rear .rear-name {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: var(--fw-medium);
+}
+.device.rear .rear-ports {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 60%;
+}
+.rear-port {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.rear-jack {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--surface-0);
+  border: 2px solid var(--border-strong);
+}
+
+/* ---------- Side view ---------- */
+.side-stack {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-0);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow-rack);
+  overflow: hidden;
+  width: 320px;
+}
+.side-row {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10.5px;
+}
+.side-row:last-child {
+  border-bottom: none;
+}
+.side-row .side-u {
+  width: 22px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+.side-row .side-bar {
+  flex: 1 1 auto;
+  height: 12px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  color: #fff;
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.side-row.empty .side-bar {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.side-row.selected {
+  background: var(--accent-weak);
+}
+
+/* ---------- Zoom readout ---------- */
+.zoom-readout {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* drag image helper */
+.drag-ghost {
+  position: absolute;
+  top: -1000px;
+  left: -1000px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #fff;
+  font-weight: 500;
+}
