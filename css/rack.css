@@ -7,12 +7,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: grab;
+}
+.canvas.panning {
+  cursor: grabbing;
 }
 
 .canvas-stage {
   transform-origin: center center;
   transition: transform 0.06s linear;
   will-change: transform;
+}
+/* track the cursor 1:1 while dragging — no easing lag */
+.canvas.panning .canvas-stage {
+  transition: none;
 }
 
 .rack-mount {

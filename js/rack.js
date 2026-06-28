@@ -16,8 +16,10 @@ window.Rack = (function () {
   var canvas; // .canvas
   var zoomReadout;
   var zoom = 1;
-  var MIN_ZOOM = 0.5;
-  var MAX_ZOOM = 2;
+  var panX = 0; // canvas pan offset, screen px
+  var panY = 0;
+  var MIN_ZOOM = 0.4;
+  var MAX_ZOOM = 3;
 
   function init(refs) {
     mount = refs.mount;
@@ -36,7 +38,7 @@ window.Rack = (function () {
     } else {
       mount.appendChild(buildRackPlate(s));
     }
-    applyZoom();
+    applyTransform();
   }
 
   /* ---------- front / rear share the rack plate ---------- */
@@ -311,33 +313,75 @@ window.Rack = (function () {
     });
   }
 
-  /* ---------- zoom (local UI state) ---------- */
+  /* ---------- zoom + pan (local UI state) ---------- */
   function bindCanvas() {
+    // wheel zooms toward the cursor, so zooming in heads where you're pointing
     canvas.addEventListener(
       "wheel",
       function (e) {
         e.preventDefault();
-        var dir = e.deltaY < 0 ? 1 : -1;
-        setZoom(zoom + dir * 0.08);
+        var rect = canvas.getBoundingClientRect();
+        var cx = e.clientX - rect.left - rect.width / 2;
+        var cy = e.clientY - rect.top - rect.height / 2;
+        var old = zoom;
+        var next = clampZoom(zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1));
+        var ratio = next / old;
+        // keep the point under the cursor fixed while scaling about centre
+        panX += (cx - panX) * (1 - ratio);
+        panY += (cy - panY) * (1 - ratio);
+        zoom = next;
+        applyTransform();
       },
       { passive: false }
     );
-    // click empty canvas to deselect
+
+    // drag empty canvas / plate to pan; a click without movement deselects
     canvas.addEventListener("mousedown", function (e) {
-      if (e.target === canvas || e.target === stage || e.target === mount) {
-        State.select(null);
+      if (e.button !== 0) return;
+      if (e.target.closest(".device")) return; // devices handle their own drag
+      var startX = e.clientX, startY = e.clientY;
+      var baseX = panX, baseY = panY;
+      var moved = false;
+
+      function move(ev) {
+        var dx = ev.clientX - startX, dy = ev.clientY - startY;
+        if (!moved && Math.abs(dx) + Math.abs(dy) > 3) {
+          moved = true;
+          canvas.classList.add("panning");
+        }
+        if (moved) {
+          panX = baseX + dx;
+          panY = baseY + dy;
+          applyTransform();
+        }
       }
+      function up() {
+        document.removeEventListener("mousemove", move);
+        document.removeEventListener("mouseup", up);
+        canvas.classList.remove("panning");
+        if (!moved) State.select(null); // it was a click on empty space
+      }
+      document.addEventListener("mousemove", move);
+      document.addEventListener("mouseup", up);
     });
   }
+
+  function clampZoom(z) {
+    return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+  }
   function setZoom(z) {
-    zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
-    applyZoom();
+    zoom = clampZoom(z);
+    applyTransform();
   }
   function resetZoom() {
-    setZoom(1);
+    zoom = 1;
+    panX = 0;
+    panY = 0;
+    applyTransform();
   }
-  function applyZoom() {
-    stage.style.transform = "scale(" + zoom + ")";
+  function applyTransform() {
+    stage.style.transform =
+      "translate(" + panX + "px," + panY + "px) scale(" + zoom + ")";
     if (zoomReadout) zoomReadout.textContent = Math.round(zoom * 100) + "%";
   }
 
