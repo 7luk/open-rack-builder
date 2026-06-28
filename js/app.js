@@ -38,6 +38,25 @@ window.App = (function () {
     if (!Persist.load()) {
       State.notify(); // first paint with defaults
     }
+
+    loadCommunity(); // merge the shared community device registry
+  }
+
+  // fetch the community device registry and merge it into the library.
+  // Fails silently over file:// (no server) — built-ins still work.
+  function loadCommunity() {
+    if (!window.fetch) return;
+    fetch("community-devices.json", { cache: "no-cache" })
+      .then(function (r) {
+        return r.ok ? r.json() : [];
+      })
+      .then(function (arr) {
+        if (Array.isArray(arr) && arr.length) {
+          Library.setCommunity(arr);
+          Library.render(refs.libraryList, searchQuery);
+        }
+      })
+      .catch(function () {});
   }
 
   function cacheRefs() {
@@ -56,6 +75,7 @@ window.App = (function () {
     refs.addCustomBtn = byId("add-custom-btn");
     refs.modalHost = byId("modal-host");
     refs.fileInput = byId("file-input");
+    refs.deviceInput = byId("device-input");
   }
 
   /* ---------- master render ---------- */
@@ -159,6 +179,9 @@ window.App = (function () {
     },
     import: function () {
       refs.fileInput.click();
+    },
+    "import-device": function () {
+      refs.deviceInput.click();
     },
     "export-json": Persist.exportJSON,
     "export-pdf": Exporter.exportPDF,
@@ -274,6 +297,28 @@ window.App = (function () {
         refs.fileInput.value = "";
       });
     });
+    refs.deviceInput.addEventListener("change", function () {
+      var file = refs.deviceInput.files && refs.deviceInput.files[0];
+      Persist.importDeviceFile(file).then(function (ok) {
+        flash(ok ? "Device added to your library" : "Could not read that device file");
+        refs.deviceInput.value = "";
+      });
+    });
+  }
+
+  /* open a prefilled GitHub issue to submit a device to the shared registry */
+  function contributeDevice(device) {
+    var data = Persist.deviceJSON(device);
+    var json = JSON.stringify(data, null, 2);
+    var title = "Device: " + (data.brand ? data.brand + " " : "") + data.name;
+    var body =
+      "A device for the community library. A maintainer adds this object to " +
+      "`community-devices.json`.\n\n```json\n" + json + "\n```\n";
+    var url =
+      "https://github.com/7luk/open-rack-builder/issues/new?labels=device-submission" +
+      "&title=" + encodeURIComponent(title) +
+      "&body=" + encodeURIComponent(body);
+    window.open(url, "_blank");
   }
 
   /* =================== modals =================== */
@@ -371,19 +416,6 @@ window.App = (function () {
     styleField.appendChild(sel);
     modal.appendChild(styleField);
 
-    // detail
-    var detailField = elx("div", "modal-field");
-    detailField.appendChild(elx("label", null, "Detail"));
-    var rng = document.createElement("input");
-    rng.type = "range";
-    rng.min = 1;
-    rng.max = 10;
-    rng.step = 1;
-    rng.value = 5;
-    rng.style.width = "100%";
-    detailField.appendChild(rng);
-    modal.appendChild(detailField);
-
     // color picker (palette swatches)
     var colorField = elx("div", "modal-field");
     colorField.appendChild(elx("label", null, "Faceplate colour"));
@@ -413,7 +445,7 @@ window.App = (function () {
     modal.appendChild(previewField);
 
     function currentFace() {
-      return Faceplates.build(sel.value, parseInt(rng.value, 10));
+      return { t: sel.value };
     }
     function updatePreview() {
       var uu = Math.max(1, Math.min(12, parseInt(u.value, 10) || 1));
@@ -432,7 +464,6 @@ window.App = (function () {
       i.addEventListener("input", updatePreview);
     });
     sel.addEventListener("change", updatePreview);
-    rng.addEventListener("input", updatePreview);
 
     modalActions(modal, "Add to library", false, function () {
       var nm = name.value.trim();
@@ -522,6 +553,7 @@ window.App = (function () {
     set dragMove(v) {
       App_dragMove = v;
     },
+    contributeDevice: contributeDevice,
     flash: flash,
   };
 })();

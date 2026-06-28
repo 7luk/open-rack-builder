@@ -42,6 +42,8 @@
           <button data-action="save">Save</button>
           <button data-action="import">Open file…</button>
           <button data-action="export-json">Save a copy (.json)…</button>
+          <div class="menu-sep"></div>
+          <button data-action="import-device">Import device file…</button>
         </div>
       </div>
       <div class="menu" data-menu>
@@ -120,8 +122,9 @@
   <!-- Modal host -->
   <div class="modal-host" id="modal-host" hidden></div>
 
-  <!-- Hidden file input for import -->
+  <!-- Hidden file inputs for import -->
   <input type="file" id="file-input" accept="application/json,.json" hidden />
+  <input type="file" id="device-input" accept="application/json,.json" hidden />
 
   <!-- Scripts: load order matters (no modules, file:// friendly) -->
   <script src="js/state.js"></script>

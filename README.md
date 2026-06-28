@@ -11,15 +11,22 @@ any static host such as GitHub Pages.
   top→bottom or bottom→top direction.
 - **Device library** of common live-audio gear, searchable and categorized
   (mixers, amplifiers, processing, playback, power, patch & IO). Add your own
-  custom devices.
+  custom devices, or pull from the community registry.
+- **CAD-blueprint faceplates** — every device renders as flat, aspect-correct
+  line art that resembles the real unit (screens, knobs, faders, jacks, vents,
+  meters), drawn procedurally as SVG so it stays crisp at any zoom.
 - **Drag and drop** from the library onto any free slot; click to select and
-  edit faceplate label, brand, color, status LED, and rear patch labels.
+  edit faceplate label, brand, color, status LED, and rear patch labels;
+  drag placed devices to reposition them.
 - **Three views** — front faceplates, rear patch panel, and a side U-stack —
   all rendered from the same state.
 - **Zoomable** canvas (scroll wheel) with a lifted rack plate.
 - **Light / dark** themes that flip the whole UI via CSS variables.
 - **Persistence** — autosaves to the browser, exports/imports the full project
   as `.json`, and prints a clean PDF parts list.
+- **Community devices** — a shared `community-devices.json` registry loads at
+  startup; contribute your own (faceplate included) straight from the app. See
+  [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Run it
 

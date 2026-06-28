@@ -19,47 +19,63 @@ window.Library = (function () {
 
   var BUILTIN = [
     // Mixers
-    { cat: "Mixers", name: "X32 Rack", brand: "Behringer", u: 3, color: "#23262b", face: { t: "mixer", d: 6 } },
-    { cat: "Mixers", name: "M32R Live", brand: "Midas", u: 3, color: "#1c1f24", face: { t: "mixer", d: 6 } },
-    { cat: "Mixers", name: "TF-Rack", brand: "Yamaha", u: 3, color: "#2a2d33", face: { t: "mixer", d: 5 } },
-    { cat: "Mixers", name: "Qu-Pac", brand: "Allen & Heath", u: 3, color: "#26282c", face: { t: "mixer", d: 5 } },
-    { cat: "Mixers", name: "StudioLive 32R", brand: "PreSonus", u: 3, color: "#1f2227", face: { t: "mixer", d: 5 } },
+    { cat: "Mixers", name: "X32 Rack", brand: "Behringer", u: 3, color: "#23262b", face: { id: "x32rack" } },
+    { cat: "Mixers", name: "M32R Live", brand: "Midas", u: 3, color: "#1c1f24", face: { id: "m32r" } },
+    { cat: "Mixers", name: "TF-Rack", brand: "Yamaha", u: 3, color: "#2a2d33", face: { id: "tfrack" } },
+    { cat: "Mixers", name: "Qu-Pac", brand: "Allen & Heath", u: 3, color: "#26282c", face: { id: "qupac" } },
+    { cat: "Mixers", name: "StudioLive 32R", brand: "PreSonus", u: 3, color: "#1f2227", face: { id: "sl32r" } },
 
     // Amplifiers
-    { cat: "Amplifiers", name: "XLi 2500", brand: "Crown", u: 2, color: "#1a1a1d", face: { t: "amp", d: 4 } },
-    { cat: "Amplifiers", name: "PLD4.5", brand: "QSC", u: 2, color: "#202327", face: { t: "amp", d: 5 } },
-    { cat: "Amplifiers", name: "FP10000Q", brand: "Lab Gruppen", u: 2, color: "#26201c", face: { t: "amp", d: 5 } },
-    { cat: "Amplifiers", name: "K10", brand: "Powersoft", u: 1, color: "#1d2024", face: { t: "amp", d: 4 } },
-    { cat: "Amplifiers", name: "DCi 4|600", brand: "Crown", u: 2, color: "#1a1a1d", face: { t: "amp", d: 5 } },
+    { cat: "Amplifiers", name: "XLi 2500", brand: "Crown", u: 2, color: "#1a1a1d", face: { id: "xli2500" } },
+    { cat: "Amplifiers", name: "PLD4.5", brand: "QSC", u: 2, color: "#202327", face: { id: "pld45" } },
+    { cat: "Amplifiers", name: "FP10000Q", brand: "Lab Gruppen", u: 2, color: "#26201c", face: { id: "fp10000q" } },
+    { cat: "Amplifiers", name: "K10", brand: "Powersoft", u: 1, color: "#1d2024", face: { id: "k10" } },
+    { cat: "Amplifiers", name: "DCi 4|600", brand: "Crown", u: 2, color: "#1a1a1d", face: { id: "dci4600" } },
 
     // Processing
-    { cat: "Processing", name: "266xs", brand: "dbx", u: 1, color: "#23252a", face: { t: "comp", d: 6 } },
-    { cat: "Processing", name: "BLU-100", brand: "BSS", u: 1, color: "#1e2a33", face: { t: "comp", d: 3 } },
-    { cat: "Processing", name: "DN360", brand: "Klark Teknik", u: 2, color: "#2a2620", face: { t: "eq", d: 8 } },
-    { cat: "Processing", name: "PCM96", brand: "Lexicon", u: 1, color: "#202024", face: { t: "comp", d: 4 } },
-    { cat: "Processing", name: "M3000", brand: "TC Electronic", u: 1, color: "#1f2429", face: { t: "comp", d: 4 } },
-    { cat: "Processing", name: "DEQ2496", brand: "Behringer", u: 1, color: "#23262b", face: { t: "comp", d: 5 } },
+    { cat: "Processing", name: "266xs", brand: "dbx", u: 1, color: "#23252a", face: { id: "dbx266" } },
+    { cat: "Processing", name: "BLU-100", brand: "BSS", u: 1, color: "#1e2a33", face: { id: "blu100" } },
+    { cat: "Processing", name: "DN360", brand: "Klark Teknik", u: 2, color: "#2a2620", face: { id: "dn360" } },
+    { cat: "Processing", name: "PCM96", brand: "Lexicon", u: 1, color: "#202024", face: { id: "pcm96" } },
+    { cat: "Processing", name: "M3000", brand: "TC Electronic", u: 1, color: "#1f2429", face: { id: "m3000" } },
+    { cat: "Processing", name: "DEQ2496", brand: "Behringer", u: 1, color: "#23262b", face: { id: "deq2496" } },
 
     // Playback
-    { cat: "Playback", name: "DN-500BD", brand: "Denon", u: 1, color: "#1c1c1f", face: { t: "player", d: 4 } },
-    { cat: "Playback", name: "CD-400U", brand: "Tascam", u: 1, color: "#212429", face: { t: "player", d: 4 } },
-    { cat: "Playback", name: "DN-700C", brand: "Denon", u: 1, color: "#1c1c1f", face: { t: "player", d: 4 } },
+    { cat: "Playback", name: "DN-500BD", brand: "Denon", u: 1, color: "#1c1c1f", face: { id: "dn500bd" } },
+    { cat: "Playback", name: "CD-400U", brand: "Tascam", u: 1, color: "#212429", face: { id: "cd400u" } },
+    { cat: "Playback", name: "DN-700C", brand: "Denon", u: 1, color: "#1c1c1f", face: { id: "dn700c" } },
 
     // Power
-    { cat: "Power", name: "PL-8C", brand: "Furman", u: 1, color: "#2b2b2e", face: { t: "power", d: 6 } },
-    { cat: "Power", name: "PL-PRO C", brand: "Furman", u: 1, color: "#2b2b2e", face: { t: "power", d: 6 } },
-    { cat: "Power", name: "PowerLight", brand: "ART", u: 1, color: "#26282c", face: { t: "power", d: 5 } },
+    { cat: "Power", name: "PL-8C", brand: "Furman", u: 1, color: "#2b2b2e", face: { id: "pl8c" } },
+    { cat: "Power", name: "PL-PRO C", brand: "Furman", u: 1, color: "#2b2b2e", face: { id: "plproc" } },
+    { cat: "Power", name: "PowerLight", brand: "ART", u: 1, color: "#26282c", face: { id: "powerlight" } },
 
     // Patch & IO
-    { cat: "Patch & IO", name: "DL16 Stagebox", brand: "Midas", u: 3, color: "#1c1f24", face: { t: "patch", d: 8 } },
-    { cat: "Patch & IO", name: "S16", brand: "Behringer", u: 3, color: "#23262b", face: { t: "patch", d: 8 } },
-    { cat: "Patch & IO", name: "TT Patchbay", brand: "Neutrik", u: 1, color: "#2d2d30", face: { t: "patch", d: 10 } },
-    { cat: "Patch & IO", name: "Medusa Panel", brand: "Whirlwind", u: 1, color: "#28282b", face: { t: "patch", d: 8 } },
+    { cat: "Patch & IO", name: "DL16 Stagebox", brand: "Midas", u: 3, color: "#1c1f24", face: { id: "dl16" } },
+    { cat: "Patch & IO", name: "S16", brand: "Behringer", u: 3, color: "#23262b", face: { id: "s16" } },
+    { cat: "Patch & IO", name: "TT Patchbay", brand: "Neutrik", u: 1, color: "#2d2d30", face: { id: "ttpatch" } },
+    { cat: "Patch & IO", name: "Medusa Panel", brand: "Whirlwind", u: 1, color: "#28282b", face: { id: "medusa" } },
   ];
 
-  /* merge built-in + custom */
+  // community devices, loaded from community-devices.json at startup
+  var community = [];
+  function setCommunity(list) {
+    community = (Array.isArray(list) ? list : []).map(function (d) {
+      return {
+        cat: d.cat || "Community",
+        name: d.name || "Device",
+        brand: d.brand || "",
+        u: Math.max(1, Math.min(12, parseInt(d.u, 10) || 1)),
+        color: d.color || "#2a2a2e",
+        face: d.face || { id: "blank" },
+        community: true,
+      };
+    });
+  }
+
+  /* merge built-in + community + custom */
   function all() {
-    return BUILTIN.concat(State.get().customLibrary);
+    return BUILTIN.concat(community, State.get().customLibrary);
   }
 
   /* group merged list by category, honouring a search filter */
@@ -118,7 +134,7 @@ window.Library = (function () {
 
   function itemEl(d) {
     var el = document.createElement("div");
-    el.className = "lib-item" + (d.custom ? " custom" : "");
+    el.className = "lib-item" + (d.custom || d.community ? " custom" : "");
     el.draggable = true;
 
     // payload used by the rack drop handler
@@ -126,8 +142,7 @@ window.Library = (function () {
     el.dataset.brand = d.brand || "";
     el.dataset.u = d.u;
     el.dataset.color = d.color;
-    el.dataset.faceT = (d.face && d.face.t) || "blank";
-    el.dataset.faceD = (d.face && d.face.d) != null ? d.face.d : 5;
+    el.dataset.face = JSON.stringify(d.face || { id: "blank" });
 
     var swatch = document.createElement("div");
     swatch.className = "lib-swatch";
@@ -155,12 +170,18 @@ window.Library = (function () {
   }
 
   function defFromEl(el) {
+    var face;
+    try {
+      face = JSON.parse(el.dataset.face || "{}");
+    } catch (e) {
+      face = { id: "blank" };
+    }
     return {
       name: el.dataset.name,
       brand: el.dataset.brand,
       u: parseInt(el.dataset.u, 10),
       color: el.dataset.color,
-      face: { t: el.dataset.faceT || "blank", d: parseInt(el.dataset.faceD, 10) || 5 },
+      face: face,
     };
   }
 
@@ -170,5 +191,6 @@ window.Library = (function () {
     all: all,
     render: render,
     defFromEl: defFromEl,
+    setCommunity: setCommunity,
   };
 })();
