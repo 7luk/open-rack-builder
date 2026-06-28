@@ -23,27 +23,6 @@
   align-items: center;
 }
 
-.window-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.wb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.wb-close {
-  background: #ff5f57;
-}
-.wb-min {
-  background: #febc2e;
-}
-.wb-max {
-  background: #28c840;
-}
-
 .header-center {
   display: flex;
   justify-content: center;
