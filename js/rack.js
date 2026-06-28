@@ -101,38 +101,13 @@ window.Rack = (function () {
     return rail;
   }
 
-  /* ---------- front faceplate ---------- */
+  /* ---------- front faceplate: CAD-blueprint line art ---------- */
   function buildDeviceFront(d, s) {
     var el = deviceShell(d, s);
+    el.classList.add("face");
     el.style.background = d.color;
-    el.style.color = textOn(d.color);
-
-    var led = document.createElement("div");
-    led.className = "device-led" + (d.led ? " on" : "");
-
-    var labels = document.createElement("div");
-    labels.className = "device-labels";
-    var name = document.createElement("div");
-    name.className = "device-name";
-    name.textContent = d.name;
-    var brand = document.createElement("div");
-    brand.className = "device-brand";
-    brand.textContent = d.brand || "";
-    labels.appendChild(name);
-    if (d.brand) labels.appendChild(brand);
-
-    var knobs = document.createElement("div");
-    knobs.className = "device-knobs";
-    var count = Math.min(4, Math.max(2, d.u + 1));
-    for (var i = 0; i < count; i++) {
-      var k = document.createElement("div");
-      k.className = "knob";
-      knobs.appendChild(k);
-    }
-
-    el.appendChild(led);
-    el.appendChild(labels);
-    el.appendChild(knobs);
+    el.style.color = textOn(d.color); // line art inherits via currentColor
+    el.innerHTML = Faceplates.svg(d); // listeners live on el, not its children
     return el;
   }
 

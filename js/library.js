@@ -19,42 +19,42 @@ window.Library = (function () {
 
   var BUILTIN = [
     // Mixers
-    { cat: "Mixers", name: "X32 Rack", brand: "Behringer", u: 3, color: "#23262b" },
-    { cat: "Mixers", name: "M32R Live", brand: "Midas", u: 3, color: "#1c1f24" },
-    { cat: "Mixers", name: "TF-Rack", brand: "Yamaha", u: 3, color: "#2a2d33" },
-    { cat: "Mixers", name: "Qu-Pac", brand: "Allen & Heath", u: 3, color: "#26282c" },
-    { cat: "Mixers", name: "StudioLive 32R", brand: "PreSonus", u: 3, color: "#1f2227" },
+    { cat: "Mixers", name: "X32 Rack", brand: "Behringer", u: 3, color: "#23262b", face: { t: "mixer", d: 6 } },
+    { cat: "Mixers", name: "M32R Live", brand: "Midas", u: 3, color: "#1c1f24", face: { t: "mixer", d: 6 } },
+    { cat: "Mixers", name: "TF-Rack", brand: "Yamaha", u: 3, color: "#2a2d33", face: { t: "mixer", d: 5 } },
+    { cat: "Mixers", name: "Qu-Pac", brand: "Allen & Heath", u: 3, color: "#26282c", face: { t: "mixer", d: 5 } },
+    { cat: "Mixers", name: "StudioLive 32R", brand: "PreSonus", u: 3, color: "#1f2227", face: { t: "mixer", d: 5 } },
 
     // Amplifiers
-    { cat: "Amplifiers", name: "XLi 2500", brand: "Crown", u: 2, color: "#1a1a1d" },
-    { cat: "Amplifiers", name: "PLD4.5", brand: "QSC", u: 2, color: "#202327" },
-    { cat: "Amplifiers", name: "FP10000Q", brand: "Lab Gruppen", u: 2, color: "#26201c" },
-    { cat: "Amplifiers", name: "K10", brand: "Powersoft", u: 1, color: "#1d2024" },
-    { cat: "Amplifiers", name: "DCi 4|600", brand: "Crown", u: 2, color: "#1a1a1d" },
+    { cat: "Amplifiers", name: "XLi 2500", brand: "Crown", u: 2, color: "#1a1a1d", face: { t: "amp", d: 4 } },
+    { cat: "Amplifiers", name: "PLD4.5", brand: "QSC", u: 2, color: "#202327", face: { t: "amp", d: 5 } },
+    { cat: "Amplifiers", name: "FP10000Q", brand: "Lab Gruppen", u: 2, color: "#26201c", face: { t: "amp", d: 5 } },
+    { cat: "Amplifiers", name: "K10", brand: "Powersoft", u: 1, color: "#1d2024", face: { t: "amp", d: 4 } },
+    { cat: "Amplifiers", name: "DCi 4|600", brand: "Crown", u: 2, color: "#1a1a1d", face: { t: "amp", d: 5 } },
 
     // Processing
-    { cat: "Processing", name: "266xs", brand: "dbx", u: 1, color: "#23252a" },
-    { cat: "Processing", name: "BLU-100", brand: "BSS", u: 1, color: "#1e2a33" },
-    { cat: "Processing", name: "DN360", brand: "Klark Teknik", u: 2, color: "#2a2620" },
-    { cat: "Processing", name: "PCM96", brand: "Lexicon", u: 1, color: "#202024" },
-    { cat: "Processing", name: "M3000", brand: "TC Electronic", u: 1, color: "#1f2429" },
-    { cat: "Processing", name: "DEQ2496", brand: "Behringer", u: 1, color: "#23262b" },
+    { cat: "Processing", name: "266xs", brand: "dbx", u: 1, color: "#23252a", face: { t: "comp", d: 6 } },
+    { cat: "Processing", name: "BLU-100", brand: "BSS", u: 1, color: "#1e2a33", face: { t: "comp", d: 3 } },
+    { cat: "Processing", name: "DN360", brand: "Klark Teknik", u: 2, color: "#2a2620", face: { t: "eq", d: 8 } },
+    { cat: "Processing", name: "PCM96", brand: "Lexicon", u: 1, color: "#202024", face: { t: "comp", d: 4 } },
+    { cat: "Processing", name: "M3000", brand: "TC Electronic", u: 1, color: "#1f2429", face: { t: "comp", d: 4 } },
+    { cat: "Processing", name: "DEQ2496", brand: "Behringer", u: 1, color: "#23262b", face: { t: "comp", d: 5 } },
 
     // Playback
-    { cat: "Playback", name: "DN-500BD", brand: "Denon", u: 1, color: "#1c1c1f" },
-    { cat: "Playback", name: "CD-400U", brand: "Tascam", u: 1, color: "#212429" },
-    { cat: "Playback", name: "DN-700C", brand: "Denon", u: 1, color: "#1c1c1f" },
+    { cat: "Playback", name: "DN-500BD", brand: "Denon", u: 1, color: "#1c1c1f", face: { t: "player", d: 4 } },
+    { cat: "Playback", name: "CD-400U", brand: "Tascam", u: 1, color: "#212429", face: { t: "player", d: 4 } },
+    { cat: "Playback", name: "DN-700C", brand: "Denon", u: 1, color: "#1c1c1f", face: { t: "player", d: 4 } },
 
     // Power
-    { cat: "Power", name: "PL-8C", brand: "Furman", u: 1, color: "#2b2b2e" },
-    { cat: "Power", name: "PL-PRO C", brand: "Furman", u: 1, color: "#2b2b2e" },
-    { cat: "Power", name: "PowerLight", brand: "ART", u: 1, color: "#26282c" },
+    { cat: "Power", name: "PL-8C", brand: "Furman", u: 1, color: "#2b2b2e", face: { t: "power", d: 6 } },
+    { cat: "Power", name: "PL-PRO C", brand: "Furman", u: 1, color: "#2b2b2e", face: { t: "power", d: 6 } },
+    { cat: "Power", name: "PowerLight", brand: "ART", u: 1, color: "#26282c", face: { t: "power", d: 5 } },
 
     // Patch & IO
-    { cat: "Patch & IO", name: "DL16 Stagebox", brand: "Midas", u: 3, color: "#1c1f24" },
-    { cat: "Patch & IO", name: "S16", brand: "Behringer", u: 3, color: "#23262b" },
-    { cat: "Patch & IO", name: "TT Patchbay", brand: "Neutrik", u: 1, color: "#2d2d30" },
-    { cat: "Patch & IO", name: "Medusa Panel", brand: "Whirlwind", u: 1, color: "#28282b" },
+    { cat: "Patch & IO", name: "DL16 Stagebox", brand: "Midas", u: 3, color: "#1c1f24", face: { t: "patch", d: 8 } },
+    { cat: "Patch & IO", name: "S16", brand: "Behringer", u: 3, color: "#23262b", face: { t: "patch", d: 8 } },
+    { cat: "Patch & IO", name: "TT Patchbay", brand: "Neutrik", u: 1, color: "#2d2d30", face: { t: "patch", d: 10 } },
+    { cat: "Patch & IO", name: "Medusa Panel", brand: "Whirlwind", u: 1, color: "#28282b", face: { t: "patch", d: 8 } },
   ];
 
   /* merge built-in + custom */
@@ -126,6 +126,8 @@ window.Library = (function () {
     el.dataset.brand = d.brand || "";
     el.dataset.u = d.u;
     el.dataset.color = d.color;
+    el.dataset.faceT = (d.face && d.face.t) || "blank";
+    el.dataset.faceD = (d.face && d.face.d) != null ? d.face.d : 5;
 
     var swatch = document.createElement("div");
     swatch.className = "lib-swatch";
@@ -158,6 +160,7 @@ window.Library = (function () {
       brand: el.dataset.brand,
       u: parseInt(el.dataset.u, 10),
       color: el.dataset.color,
+      face: { t: el.dataset.faceT || "blank", d: parseInt(el.dataset.faceD, 10) || 5 },
     };
   }
 

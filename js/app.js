@@ -347,19 +347,46 @@ window.App = (function () {
     openModal(modal);
   }
 
-  // add custom device (inline-ish form, lands in the custom library)
+  // add custom device — compose a line-art faceplate with a live preview
   function openCustomModal() {
-    var modal = modalShell("Add custom device", "It joins your library and can be reused.");
+    var modal = modalShell("Add custom device", "Compose its faceplate; it joins your library.");
 
     var name = labeledInput(modal, "Name", "text", "My device");
     var brand = labeledInput(modal, "Brand / model", "text", "");
     var u = labeledInput(modal, "Size (U)", "number", "1");
     u.min = 1;
-    u.max = 60;
+    u.max = 12;
+
+    // faceplate style
+    var styleField = elx("div", "modal-field");
+    styleField.appendChild(elx("label", null, "Faceplate style"));
+    var sel = document.createElement("select");
+    Faceplates.TEMPLATES.forEach(function (t) {
+      var o = document.createElement("option");
+      o.value = t.id;
+      o.textContent = t.label;
+      if (t.id === "comp") o.selected = true;
+      sel.appendChild(o);
+    });
+    styleField.appendChild(sel);
+    modal.appendChild(styleField);
+
+    // detail
+    var detailField = elx("div", "modal-field");
+    detailField.appendChild(elx("label", null, "Detail"));
+    var rng = document.createElement("input");
+    rng.type = "range";
+    rng.min = 1;
+    rng.max = 10;
+    rng.step = 1;
+    rng.value = 5;
+    rng.style.width = "100%";
+    detailField.appendChild(rng);
+    modal.appendChild(detailField);
 
     // color picker (palette swatches)
     var colorField = elx("div", "modal-field");
-    colorField.appendChild(elx("label", null, "Faceplate"));
+    colorField.appendChild(elx("label", null, "Faceplate colour"));
     var sw = elx("div", "swatches");
     var chosen = { color: Props.PALETTE[1] };
     Props.PALETTE.forEach(function (c, i) {
@@ -371,11 +398,41 @@ window.App = (function () {
           x.classList.remove("active");
         });
         s.classList.add("active");
+        updatePreview();
       });
       sw.appendChild(s);
     });
     colorField.appendChild(sw);
     modal.appendChild(colorField);
+
+    // live preview
+    var previewField = elx("div", "modal-field");
+    previewField.appendChild(elx("label", null, "Preview"));
+    var preview = elx("div", "fp-preview");
+    previewField.appendChild(preview);
+    modal.appendChild(previewField);
+
+    function currentFace() {
+      return Faceplates.build(sel.value, parseInt(rng.value, 10));
+    }
+    function updatePreview() {
+      var uu = Math.max(1, Math.min(12, parseInt(u.value, 10) || 1));
+      preview.style.height = Math.max(34, Math.min(120, uu * 26)) + "px";
+      preview.style.background = chosen.color;
+      preview.style.color = Rack.textOn(chosen.color);
+      preview.innerHTML = Faceplates.svg({
+        name: name.value || "Device",
+        u: uu,
+        color: chosen.color,
+        led: true,
+        face: currentFace(),
+      });
+    }
+    [name, u].forEach(function (i) {
+      i.addEventListener("input", updatePreview);
+    });
+    sel.addEventListener("change", updatePreview);
+    rng.addEventListener("input", updatePreview);
 
     modalActions(modal, "Add to library", false, function () {
       var nm = name.value.trim();
@@ -389,10 +446,12 @@ window.App = (function () {
         brand: brand.value.trim(),
         u: parseInt(u.value, 10) || 1,
         color: chosen.color,
+        face: currentFace(),
       });
       flash("Added to library");
     });
     openModal(modal);
+    updatePreview();
     setTimeout(function () {
       name.focus();
     }, 0);

@@ -113,6 +113,41 @@ window.Props = (function () {
     colorField.appendChild(sw);
     deviceEl.appendChild(colorField);
 
+    // faceplate style (line-art template)
+    var styleField = el("div", "field");
+    styleField.appendChild(el("label", null, "Faceplate style"));
+    var sel = document.createElement("select");
+    Faceplates.TEMPLATES.forEach(function (t) {
+      var o = document.createElement("option");
+      o.value = t.id;
+      o.textContent = t.label;
+      if (d.face && d.face.t === t.id) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener("change", function () {
+      State.updateDevice(d.id, { face: Faceplates.build(sel.value, d.face && d.face.d) });
+    });
+    styleField.appendChild(sel);
+    deviceEl.appendChild(styleField);
+
+    // faceplate detail (feature density) — commit on release, not mid-drag
+    var detailField = el("div", "field");
+    detailField.appendChild(el("label", null, "Faceplate detail"));
+    var rng = document.createElement("input");
+    rng.type = "range";
+    rng.min = 1;
+    rng.max = 10;
+    rng.step = 1;
+    rng.value = (d.face && d.face.d) || 5;
+    rng.style.width = "100%";
+    rng.addEventListener("change", function () {
+      State.updateDevice(d.id, {
+        face: Faceplates.build(d.face && d.face.t, parseInt(rng.value, 10)),
+      });
+    });
+    detailField.appendChild(rng);
+    deviceEl.appendChild(detailField);
+
     // status LED toggle
     var ledField = el("div", "field");
     var ledRow = el("div", "toggle-row");

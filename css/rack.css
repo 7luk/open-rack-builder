@@ -127,8 +127,6 @@
   cursor: grab;
   overflow: hidden;
   user-select: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.25);
 }
 .device:active {
   cursor: grabbing;
@@ -139,6 +137,33 @@
 .device.selected {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+  z-index: 2;
+}
+
+/* faceplate line art fills the device edge to edge */
+.device.face {
+  padding: 0;
+  display: block;
+}
+.fp {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none; /* clicks & drags belong to the .device */
+}
+.fp * {
+  vector-effect: non-scaling-stroke; /* crisp ~1px lines at any zoom */
+}
+
+/* live faceplate preview in the custom-device modal */
+.fp-preview {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  overflow: hidden;
 }
 
 .device-led {

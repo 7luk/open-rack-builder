@@ -162,6 +162,7 @@ window.State = (function () {
       slot: slot,
       led: true,
       rearLabel: "",
+      face: Faceplates.normalizeFace(def.face),
     };
     data.devices.push(d);
     data.selectedId = d.id;
@@ -240,6 +241,7 @@ window.State = (function () {
       brand: def.brand || "",
       u: clamp(Math.round(def.u || 1), 1, 60),
       color: def.color || "#2a2a2e",
+      face: Faceplates.normalizeFace(def.face),
       custom: true,
     });
     notify();
@@ -279,6 +281,7 @@ window.State = (function () {
               slot: clamp(Math.round(Number(d.slot) || 1), 1, 60),
               led: d.led !== false,
               rearLabel: d.rearLabel || "",
+              face: Faceplates.normalizeFace(d.face),
             };
           })
         : [],
@@ -290,6 +293,7 @@ window.State = (function () {
               brand: c.brand || "",
               u: clamp(Math.round(Number(c.u) || 1), 1, 60),
               color: c.color || "#2a2a2e",
+              face: Faceplates.normalizeFace(c.face),
               custom: true,
             };
           })
