@@ -2,7 +2,8 @@
 
 A browser-only rack planning tool for live audio professionals — PA, mixers,
 amps, processing, and patch gear. No frameworks, no build tools, no server.
-Just open `index.html`.
+It's plain static files, so it runs equally well opened locally or served from
+any static host such as GitHub Pages.
 
 ## Features
 
@@ -22,11 +23,18 @@ Just open `index.html`.
 
 ## Run it
 
+Locally, just open the file — no install step, everything runs client-side:
+
 ```
 open index.html
 ```
 
-No install step. Everything runs client-side.
+## Host it
+
+Because it's all static files with relative paths, it deploys to GitHub Pages
+with no build step. In the repo: **Settings → Pages → Build and deployment →
+Deploy from a branch**, pick `main` / `/ (root)`, save, and it'll be served at
+`https://<user>.github.io/open-rack-builder/`.
 
 ## Project structure
 
