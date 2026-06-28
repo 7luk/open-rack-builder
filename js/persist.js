@@ -77,7 +77,10 @@ window.Persist = (function () {
       brand: device.brand || "",
       u: device.u || 1,
       color: device.color || "#2a2a2e",
-      face: { spec: Faceplates.resolveSpec(device) },
+      face: {
+        spec: Faceplates.resolveSpec(device, "front"),
+        rearSpec: Faceplates.resolveSpec(device, "rear"),
+      },
     };
   }
   function exportDevice(device) {

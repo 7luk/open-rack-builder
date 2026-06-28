@@ -113,43 +113,13 @@ window.Rack = (function () {
     return el;
   }
 
-  /* ---------- rear view ---------- */
+  /* ---------- rear view: real I/O panel, same line-art engine ---------- */
   function buildDeviceRear(d, s) {
     var el = deviceShell(d, s);
-    el.classList.add("rear");
-
-    var name = document.createElement("div");
-    name.className = "rear-name";
-    name.textContent = d.name;
-
-    var ports = document.createElement("div");
-    ports.className = "rear-ports";
-    if (d.rearLabel && d.rearLabel.trim()) {
-      d.rearLabel
-        .split(/[,\n]/)
-        .map(function (t) {
-          return t.trim();
-        })
-        .filter(Boolean)
-        .slice(0, 8)
-        .forEach(function (t) {
-          var p = document.createElement("span");
-          p.className = "rear-port";
-          p.textContent = t;
-          ports.appendChild(p);
-        });
-    } else {
-      // default jacks when no labels are set
-      var jacks = Math.min(6, d.u * 2);
-      for (var i = 0; i < jacks; i++) {
-        var j = document.createElement("span");
-        j.className = "rear-jack";
-        ports.appendChild(j);
-      }
-    }
-
-    el.appendChild(name);
-    el.appendChild(ports);
+    el.classList.add("face");
+    el.style.background = d.color;
+    el.style.color = textOn(d.color);
+    el.innerHTML = Faceplates.svg(d, "rear");
     return el;
   }
 
