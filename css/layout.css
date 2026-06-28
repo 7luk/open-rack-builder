@@ -229,10 +229,16 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.32);
-  display: flex;
   align-items: center;
   justify-content: center;
   z-index: 200;
+  /* Hidden by default. A bare [hidden] attribute would be overridden by this
+     class rule, so the host must default to display:none and only flex when
+     the attribute is removed — otherwise it overlays and eats every click. */
+  display: none;
+}
+.modal-host:not([hidden]) {
+  display: flex;
 }
 .modal {
   width: 360px;
