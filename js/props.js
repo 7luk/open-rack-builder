@@ -67,6 +67,25 @@ window.Props = (function () {
     );
     dirField.appendChild(seg);
     globalEl.appendChild(dirField);
+
+    // depth (mm) — shown in the side view
+    globalEl.appendChild(
+      numberField("Depth (mm)", r.depth, 200, 1500, function (v) {
+        State.setRackSetting("depth", v);
+      })
+    );
+
+    // wheels / casters toggle
+    var wheelField = el("div", "field");
+    var wheelRow = el("div", "toggle-row");
+    wheelRow.appendChild(el("label", null, "Wheels (casters)"));
+    var wheelToggle = el("div", "toggle" + (r.wheels ? " on" : ""));
+    wheelToggle.addEventListener("click", function () {
+      State.setRackSetting("wheels", !r.wheels);
+    });
+    wheelRow.appendChild(wheelToggle);
+    wheelField.appendChild(wheelRow);
+    globalEl.appendChild(wheelField);
   }
 
   /* ---------- selected device properties ---------- */

@@ -30,6 +30,8 @@ window.State = (function () {
         size: 12, // number of U rows
         startUnit: 1, // U label given to the first numbered row
         direction: "bottom-up", // bottom-up = U1 at the bottom; top-down = U1 at top
+        depth: 600, // rack depth in mm (shown in the side view)
+        wheels: false, // casters on the bottom of the rack
       },
       devices: [], // placed devices
       customLibrary: [], // user-defined device templates
@@ -92,6 +94,12 @@ window.State = (function () {
       r.startUnit = clamp(s, 0, 9999);
     } else if (key === "direction") {
       if (value === "top-down" || value === "bottom-up") r.direction = value;
+    } else if (key === "depth") {
+      var d = Math.round(Number(value));
+      if (!isFinite(d)) return;
+      r.depth = clamp(d, 200, 1500);
+    } else if (key === "wheels") {
+      r.wheels = !!value;
     }
     notify();
   }
@@ -269,6 +277,8 @@ window.State = (function () {
         startUnit: clamp(Math.round(Number(raw.rack && raw.rack.startUnit) || 1), 0, 9999),
         direction:
           raw.rack && raw.rack.direction === "top-down" ? "top-down" : "bottom-up",
+        depth: clamp(Math.round(Number(raw.rack && raw.rack.depth) || 600), 200, 1500),
+        wheels: !!(raw.rack && raw.rack.wheels),
       },
       devices: Array.isArray(raw.devices)
         ? raw.devices.map(function (d) {

@@ -33,11 +33,18 @@ window.Rack = (function () {
   function render() {
     var s = State.get();
     mount.innerHTML = "";
+    var unit = document.createElement("div");
+    unit.className = "rack-unit";
     if (s.view === "side") {
-      mount.appendChild(buildSide(s));
+      unit.appendChild(buildSide(s));
     } else {
-      mount.appendChild(buildRackPlate(s));
+      unit.appendChild(buildRackPlate(s));
     }
+    if (s.rack.wheels) {
+      var isSide = s.view === "side";
+      unit.appendChild(buildWheels(isSide, isSide ? sideDepthPx(s) : PLATE_PX));
+    }
+    mount.appendChild(unit);
     applyTransform();
   }
 
@@ -158,10 +165,28 @@ window.Rack = (function () {
     return el;
   }
 
+  var PLATE_PX = 472; // keep in sync with .rack-plate width
+  function sideDepthPx(s) {
+    return Math.round(Math.min(560, Math.max(170, (s.rack.depth / 600) * 320)));
+  }
+
   /* ---------- side view ---------- */
   function buildSide(s) {
+    // the side profile's width represents the rack depth
+    var depthPx = sideDepthPx(s);
+
+    var profile = document.createElement("div");
+    profile.className = "side-profile";
+
+    var cap = document.createElement("div");
+    cap.className = "side-depth";
+    cap.style.width = depthPx + "px";
+    cap.textContent = "↤ depth " + s.rack.depth + " mm ↦";
+    profile.appendChild(cap);
+
     var stack = document.createElement("div");
     stack.className = "side-stack";
+    stack.style.width = depthPx + "px";
 
     // map each physical row to the device occupying it (if any)
     var rowDevice = {};
@@ -200,7 +225,28 @@ window.Rack = (function () {
       rowEl.appendChild(bar);
       stack.appendChild(rowEl);
     }
-    return stack;
+    profile.appendChild(stack);
+    return profile;
+  }
+
+  /* ---------- wheels / casters (minimalist) ---------- */
+  function buildWheels(isSide, widthPx) {
+    var el = document.createElement("div");
+    el.className = "rack-wheels" + (isSide ? " side" : "");
+    el.style.width = widthPx + "px";
+    var n = isSide ? 2 : 4; // 2 visible from the side, 4 across front/rear
+    for (var i = 0; i < n; i++) {
+      var c = document.createElement("div");
+      c.className = "caster";
+      var fork = document.createElement("div");
+      fork.className = "caster-fork";
+      var wheel = document.createElement("div");
+      wheel.className = "caster-wheel";
+      c.appendChild(fork);
+      c.appendChild(wheel);
+      el.appendChild(c);
+    }
+    return el;
   }
 
   /* ---------- drop target: places library items AND repositions devices ---------- */

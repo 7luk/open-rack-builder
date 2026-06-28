@@ -178,13 +178,23 @@ window.Faceplates = (function () {
   var SCHEMATICS = {
     blank: [],
 
-    /* Behringer X32 Rack / Midas M32R: 5" TFT, 6 push-encoders beneath,
-       function-button cluster, level + phones knobs */
+    /* Behringer X32 Rack / Midas M32R (3U):
+       USB top-left, a block of view/function buttons left of the 5" TFT,
+       6 push-encoders beneath the screen, selected-channel level meter,
+       a 16-button channel-select grid + bank buttons, then monitor / phones /
+       talkback / main knobs, headphone jack and power switch at the far right. */
     x32rack: [
-      SC(0.02, 0.12, 0.30, 0.52), knobRow(0.02, 0.32, 0.80, 6, 0.10),
-      btnGrid(0.40, 0.74, 0.16, 0.40, 6, 2, 0.05, 0.09),
-      knobRow(0.40, 0.74, 0.66, 5, 0.11),
-      K(0.86, 0.5, 0.15), K(0.96, 0.5, 0.12), ledRow(0.40, 0.74, 0.92, 6, 0.025),
+      B(0.025, 0.10, 0.045, 0.10),                          // USB
+      btnGrid(0.025, 0.105, 0.26, 0.74, 2, 4, 0.045, 0.085), // view/function buttons
+      SC(0.16, 0.13, 0.27, 0.56),                           // 5" TFT display
+      knobRow(0.16, 0.43, 0.84, 6, 0.085),                  // 6 push-encoders
+      MT(0.455, 0.14, 0.03, 0.5, 12),                       // selected-channel meter
+      btnGrid(0.52, 0.81, 0.20, 0.40, 8, 2, 0.027, 0.075),  // 16 channel-select keys
+      btnRow(0.52, 0.74, 0.60, 4, 0.04, 0.07),              // bank / layer
+      ledRow(0.52, 0.81, 0.10, 8, 0.022),                   // channel LEDs
+      K(0.87, 0.28, 0.085), K(0.96, 0.28, 0.085),           // monitor / phones
+      K(0.87, 0.52, 0.085), K(0.96, 0.52, 0.085),           // talkback / main
+      J(0.87, 0.84, 0.08), B(0.97, 0.84, 0.045, 0.12),      // headphones, power
     ],
 
     /* Yamaha TF-Rack: large touchscreen, Touch&Turn knob beside it, 4 user
