@@ -198,6 +198,18 @@ window.State = (function () {
     if (!d) return;
     moveDevice(id, d.slot + delta);
   }
+  /* drag-to-move: snap to the nearest free slot at/around preferredTop,
+     ignoring the device's own rows so it can slide past its old position */
+  function repositionDevice(id, preferredTop) {
+    var d = byId(id);
+    if (!d) return false;
+    var slot = findFreeSlot(d.u, preferredTop, id);
+    if (slot == null) return false;
+    d.slot = slot;
+    data.selectedId = id;
+    notify();
+    return true;
+  }
   function clearRack() {
     data.devices = [];
     data.selectedId = null;
@@ -317,6 +329,7 @@ window.State = (function () {
     updateDevice: updateDevice,
     moveDevice: moveDevice,
     nudge: nudge,
+    repositionDevice: repositionDevice,
     clearRack: clearRack,
     // selection
     select: select,

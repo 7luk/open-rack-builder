@@ -176,16 +176,37 @@ window.Rack = (function () {
     return el;
   }
 
-  /* shared overlay shell: position + selection + click-to-select */
+  /* shared overlay shell: position, click-to-select, drag-to-reposition */
   function deviceShell(d, s) {
     var el = document.createElement("div");
     el.className = "device" + (s.selectedId === d.id ? " selected" : "");
     el.style.top = (d.slot - 1) * U_PX + "px";
     el.style.height = d.u * U_PX - 4 + "px";
     el.dataset.id = d.id;
-    el.addEventListener("mousedown", function (e) {
+    el.draggable = true;
+
+    // select on click, NOT mousedown — selecting re-renders, which would yank
+    // this element out from under a drag that's just starting
+    el.addEventListener("click", function (e) {
       e.stopPropagation();
       State.select(d.id);
+    });
+
+    // drag the placed device to a new slot
+    el.addEventListener("dragstart", function (e) {
+      var rect = el.getBoundingClientRect();
+      // which U within the device was grabbed (so it stays under the cursor)
+      var grab = Math.floor((e.clientY - rect.top) / zoom / U_PX);
+      grab = Math.min(d.u - 1, Math.max(0, grab));
+      App.dragMove = { id: d.id, u: d.u, grab: grab };
+      App.dragDef = null;
+      el.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", d.id);
+    });
+    el.addEventListener("dragend", function () {
+      App.dragMove = null;
+      el.classList.remove("dragging");
     });
     return el;
   }
@@ -235,7 +256,7 @@ window.Rack = (function () {
     return stack;
   }
 
-  /* ---------- drag & drop from library ---------- */
+  /* ---------- drop target: places library items AND repositions devices ---------- */
   function bindDrop(slots) {
     var lastHighlight = [];
 
@@ -253,21 +274,43 @@ window.Rack = (function () {
       return Math.min(State.get().rack.size, Math.max(1, row));
     }
 
+    // the active drag: a device being moved, or a library item being added
+    function payload() {
+      if (App.dragMove)
+        return {
+          move: true,
+          u: App.dragMove.u,
+          ignoreId: App.dragMove.id,
+          grab: App.dragMove.grab,
+        };
+      if (App.dragDef) return { move: false, u: App.dragDef.u, ignoreId: null, grab: 0 };
+      return null;
+    }
+
+    // desired top row from the cursor, offset by where the device was grabbed,
+    // clamped so the body stays inside the rack
+    function desiredTop(e, p) {
+      var size = State.get().rack.size;
+      var top = rowFromEvent(e) - p.grab;
+      return Math.min(Math.max(1, top), Math.max(1, size - p.u + 1));
+    }
+
     slots.addEventListener("dragover", function (e) {
-      if (!App.dragDef) return;
+      var p = payload();
+      if (!p) return;
       e.preventDefault();
-      e.dataTransfer.dropEffect = "copy";
+      e.dataTransfer.dropEffect = p.move ? "move" : "copy";
       clearHighlight();
-      var u = App.dragDef.u;
-      var top = rowFromEvent(e);
-      // clamp so the device body stays inside the rack
-      top = Math.min(top, Math.max(1, State.get().rack.size - u + 1));
-      var ok = State.canPlace(top, u, null);
+      var top = desiredTop(e, p);
+      // highlight where it will actually land (snapped to nearest free)
+      var snapped = State.findFreeSlot(p.u, top, p.ignoreId);
       var cells = slots.querySelectorAll(".slot");
-      for (var r = top; r < top + u; r++) {
+      var start = snapped != null ? snapped : top;
+      var cls = snapped != null ? "drop-ok" : "drop-bad";
+      for (var r = start; r < start + p.u; r++) {
         var cell = cells[r - 1];
         if (cell) {
-          cell.classList.add(ok ? "drop-ok" : "drop-bad");
+          cell.classList.add(cls);
           lastHighlight.push(cell);
         }
       }
@@ -280,12 +323,16 @@ window.Rack = (function () {
     slots.addEventListener("drop", function (e) {
       e.preventDefault();
       clearHighlight();
-      var def = App.dragDef;
-      if (!def) return;
-      var top = rowFromEvent(e);
-      top = Math.min(top, Math.max(1, State.get().rack.size - def.u + 1));
-      State.addDevice(def, top); // findFreeSlot falls back if exact spot is taken
-      App.dragDef = null;
+      var p = payload();
+      if (!p) return;
+      var top = desiredTop(e, p);
+      if (p.move) {
+        State.repositionDevice(p.ignoreId, top);
+        App.dragMove = null;
+      } else {
+        State.addDevice(App.dragDef, top); // findFreeSlot falls back if taken
+        App.dragDef = null;
+      }
     });
   }
 

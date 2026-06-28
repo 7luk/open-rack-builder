@@ -10,6 +10,7 @@ window.App = (function () {
   // transient UI state (never persisted)
   var searchQuery = "";
   App_dragDef = null; // set on library dragstart, read by rack drop
+  App_dragMove = null; // set when dragging a placed device, read by rack drop
 
   var refs = {};
 
@@ -216,6 +217,7 @@ window.App = (function () {
       var item = e.target.closest(".lib-item");
       if (!item) return;
       App.dragDef = Library.defFromEl(item);
+      App.dragMove = null;
       e.dataTransfer.effectAllowed = "copy";
       e.dataTransfer.setData("text/plain", App.dragDef.name);
     });
@@ -455,12 +457,19 @@ window.App = (function () {
     set dragDef(v) {
       App_dragDef = v;
     },
+    get dragMove() {
+      return App_dragMove;
+    },
+    set dragMove(v) {
+      App_dragMove = v;
+    },
     flash: flash,
   };
 })();
 
 // transient globals used across closures (kept off the document state)
 var App_dragDef = null;
+var App_dragMove = null;
 var App_closeMenus = null;
 
 document.addEventListener("DOMContentLoaded", App.start);
