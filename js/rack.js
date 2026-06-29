@@ -112,7 +112,6 @@ window.Rack = (function () {
       plate.appendChild(rivet);
     });
 
-    bindDrop(slots);
     return plate;
   }
 
@@ -170,30 +169,19 @@ window.Rack = (function () {
     el.style.top = (d.slot - 1) * U_PX + "px";
     el.style.height = d.u * U_PX - 1 + "px"; // near-full U: faceplates nearly touch, like real gear
     el.dataset.id = d.id;
-    el.draggable = true;
 
-    // select on click, NOT mousedown — selecting re-renders, which would yank
-    // this element out from under a drag that's just starting
-    el.addEventListener("click", function (e) {
-      e.stopPropagation();
-      State.select(d.id);
-    });
-
-    // drag the placed device to a new slot
-    el.addEventListener("dragstart", function (e) {
+    // pointer drag repositions the device; a tap (no movement) selects it.
+    // Uses Pointer Events so it works with mouse, touch and pen alike (the
+    // HTML5 drag-and-drop API has no touch support).
+    el.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
       var rect = el.getBoundingClientRect();
-      // which U within the device was grabbed (so it stays under the cursor)
-      var grab = Math.floor((e.clientY - rect.top) / zoom / U_PX);
-      grab = Math.min(d.u - 1, Math.max(0, grab));
-      App.dragMove = { id: d.id, u: d.u, grab: grab };
-      App.dragDef = null;
-      el.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", d.id);
-    });
-    el.addEventListener("dragend", function () {
-      App.dragMove = null;
-      el.classList.remove("dragging");
+      // which U within the device was grabbed (so it stays under the pointer)
+      var grab = Math.min(
+        d.u - 1,
+        Math.max(0, Math.floor((e.clientY - rect.top) / zoom / U_PX))
+      );
+      beginPlaceDrag("move", { id: d.id, u: d.u, grab: grab }, e, el);
     });
     return el;
   }
@@ -383,8 +371,8 @@ window.Rack = (function () {
 
     var head = document.createElement("div");
     head.className = "topo-head";
-    // drag the head to move the node around the canvas
-    head.addEventListener("mousedown", function (e) {
+    // drag the head to move the node around the canvas (mouse / touch / pen)
+    head.addEventListener("pointerdown", function (e) {
       startTopoDrag(e, d, node, pos);
     });
     var nm = document.createElement("span");
@@ -421,13 +409,17 @@ window.Rack = (function () {
   // the node tracks the cursor. Commits to state on release (which persists
   // and re-renders). A tiny move threshold keeps a plain click = select.
   function startTopoDrag(e, d, node, origPos) {
-    if (e.button !== 0) return;
-    e.preventDefault();
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // no preventDefault here: let the trailing click fall through to select on
+    // a tap. stopPropagation keeps the canvas from starting a pan underneath.
+    e.stopPropagation();
     var sx = e.clientX,
       sy = e.clientY,
+      pid = e.pointerId,
       moved = false;
 
     function mm(ev) {
+      if (ev.pointerId !== pid) return;
       var dx = (ev.clientX - sx) / zoom;
       var dy = (ev.clientY - sy) / zoom;
       if (!moved && Math.abs(dx) + Math.abs(dy) > 3) {
@@ -440,8 +432,10 @@ window.Rack = (function () {
       }
     }
     function mu(ev) {
-      document.removeEventListener("mousemove", mm);
-      document.removeEventListener("mouseup", mu);
+      if (ev.pointerId !== pid) return;
+      document.removeEventListener("pointermove", mm);
+      document.removeEventListener("pointerup", mu);
+      document.removeEventListener("pointercancel", mu);
       if (!moved) return;
       node.classList.remove("dragging");
       var dx = (ev.clientX - sx) / zoom;
@@ -450,8 +444,9 @@ window.Rack = (function () {
       setTimeout(function () { suppressTopoClick = false; }, 0);
       State.setTopoPos(d.id, origPos.x + dx, origPos.y + dy);
     }
-    document.addEventListener("mousemove", mm);
-    document.addEventListener("mouseup", mu);
+    document.addEventListener("pointermove", mm);
+    document.addEventListener("pointerup", mu);
+    document.addEventListener("pointercancel", mu);
   }
 
   // a single connection pin; the cable layer (later) will anchor to these
@@ -485,138 +480,210 @@ window.Rack = (function () {
     return el;
   }
 
-  /* ---------- drop target: places library items AND repositions devices ---------- */
-  function bindDrop(slots) {
-    var lastHighlight = [];
+  /* ---------- unified pointer drag: place a library item OR move a device ----------
+     Replaces HTML5 drag-and-drop (which has no touch support). `kind` is "add"
+     (dragged from the library) or "move" (a placed device). The rack's live
+     .slots / .slot cells are the drop grid, located via elementFromPoint so
+     the same code works whichever plate is on screen. */
+  function beginPlaceDrag(kind, data, e, srcEl) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    var sx = e.clientX,
+      sy = e.clientY,
+      pid = e.pointerId;
+    var moved = false,
+      ghost = null,
+      hl = [];
 
-    function clearHighlight() {
-      lastHighlight.forEach(function (el) {
-        el.classList.remove("drop-ok", "drop-bad");
+    function clearHL() {
+      hl.forEach(function (c) {
+        c.classList.remove("drop-ok", "drop-bad");
       });
-      lastHighlight = [];
+      hl = [];
     }
-
-    function rowFromEvent(e) {
+    function slotsAt(x, y) {
+      var t = document.elementFromPoint(x, y);
+      return t ? t.closest(".slots") : null;
+    }
+    function topFrom(slots, y) {
       var rect = slots.getBoundingClientRect();
-      var y = (e.clientY - rect.top) / zoom;
-      var row = Math.floor(y / U_PX) + 1;
-      return Math.min(State.get().rack.size, Math.max(1, row));
-    }
-
-    // the active drag: a device being moved, or a library item being added
-    function payload() {
-      if (App.dragMove)
-        return {
-          move: true,
-          u: App.dragMove.u,
-          ignoreId: App.dragMove.id,
-          grab: App.dragMove.grab,
-        };
-      if (App.dragDef) return { move: false, u: App.dragDef.u, ignoreId: null, grab: 0 };
-      return null;
-    }
-
-    // desired top row from the cursor, offset by where the device was grabbed,
-    // clamped so the body stays inside the rack
-    function desiredTop(e, p) {
       var size = State.get().rack.size;
-      var top = rowFromEvent(e) - p.grab;
-      return Math.min(Math.max(1, top), Math.max(1, size - p.u + 1));
+      var row = Math.min(size, Math.max(1, Math.floor((y - rect.top) / zoom / U_PX) + 1));
+      var top = row - (data.grab || 0);
+      return Math.min(Math.max(1, top), Math.max(1, size - data.u + 1));
     }
-
-    slots.addEventListener("dragover", function (e) {
-      var p = payload();
-      if (!p) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = p.move ? "move" : "copy";
-      clearHighlight();
-      var top = desiredTop(e, p);
-      // highlight where it will actually land (snapped to nearest free)
-      var snapped = State.findFreeSlot(p.u, top, p.ignoreId);
+    function highlight(slots, y) {
+      clearHL();
+      var top = topFrom(slots, y);
+      var snapped = State.findFreeSlot(data.u, top, kind === "move" ? data.id : null);
       var cells = slots.querySelectorAll(".slot");
       var start = snapped != null ? snapped : top;
       var cls = snapped != null ? "drop-ok" : "drop-bad";
-      for (var r = start; r < start + p.u; r++) {
-        var cell = cells[r - 1];
-        if (cell) {
-          cell.classList.add(cls);
-          lastHighlight.push(cell);
+      for (var r = start; r < start + data.u; r++) {
+        var c = cells[r - 1];
+        if (c) {
+          c.classList.add(cls);
+          hl.push(c);
         }
       }
-    });
-
-    slots.addEventListener("dragleave", function (e) {
-      if (!slots.contains(e.relatedTarget)) clearHighlight();
-    });
-
-    slots.addEventListener("drop", function (e) {
-      e.preventDefault();
-      clearHighlight();
-      var p = payload();
-      if (!p) return;
-      var top = desiredTop(e, p);
-      if (p.move) {
-        State.repositionDevice(p.ignoreId, top);
-        App.dragMove = null;
-      } else {
-        State.addDevice(App.dragDef, top); // findFreeSlot falls back if taken
-        App.dragDef = null;
+    }
+    function mm(ev) {
+      if (ev.pointerId !== pid) return;
+      if (!moved && Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) > 4) {
+        moved = true;
+        if (kind === "move" && srcEl) srcEl.classList.add("dragging");
+        else if (kind === "add") ghost = makeGhost(data.label, ev.clientX, ev.clientY);
       }
-    });
+      if (!moved) return;
+      if (ghost) {
+        ghost.style.left = ev.clientX + "px";
+        ghost.style.top = ev.clientY + "px";
+      }
+      var slots = slotsAt(ev.clientX, ev.clientY);
+      if (slots) highlight(slots, ev.clientY);
+      else clearHL();
+    }
+    function done(ev) {
+      if (ev.pointerId !== pid) return;
+      document.removeEventListener("pointermove", mm);
+      document.removeEventListener("pointerup", done);
+      document.removeEventListener("pointercancel", done);
+      if (ghost) ghost.remove();
+      var slots = slotsAt(ev.clientX, ev.clientY);
+      if (moved && slots) {
+        var top = topFrom(slots, ev.clientY);
+        if (kind === "move") State.repositionDevice(data.id, top);
+        else if (!State.addDevice(data.def, top)) App.flash("No room in the rack");
+      } else if (!moved) {
+        // a tap: select the device, or drop a library item in the first free slot
+        if (kind === "move") State.select(data.id);
+        else if (!State.addDevice(data.def, null)) App.flash("No room in the rack");
+      } else if (kind === "move" && srcEl) {
+        srcEl.classList.remove("dragging"); // dragged outside the rack → leave put
+      }
+      clearHL();
+    }
+    document.addEventListener("pointermove", mm);
+    document.addEventListener("pointerup", done);
+    document.addEventListener("pointercancel", done);
   }
 
-  /* ---------- zoom + pan (local UI state) ---------- */
+  function makeGhost(label, x, y) {
+    var g = document.createElement("div");
+    g.className = "drag-ghost floating";
+    g.textContent = label || "device";
+    g.style.left = x + "px";
+    g.style.top = y + "px";
+    document.body.appendChild(g);
+    return g;
+  }
+
+  /* ---------- zoom + pan (local UI state) — mouse, touch and pen ---------- */
   function bindCanvas() {
-    // wheel zooms toward the cursor, so zooming in heads where you're pointing
+    // mouse wheel zooms toward the cursor
     canvas.addEventListener(
       "wheel",
       function (e) {
         e.preventDefault();
         var rect = canvas.getBoundingClientRect();
-        var cx = e.clientX - rect.left - rect.width / 2;
-        var cy = e.clientY - rect.top - rect.height / 2;
-        var old = zoom;
-        var next = clampZoom(zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1));
-        var ratio = next / old;
-        // keep the point under the cursor fixed while scaling about centre
-        panX += (cx - panX) * (1 - ratio);
-        panY += (cy - panY) * (1 - ratio);
-        zoom = next;
-        applyTransform();
+        zoomAt(
+          zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1),
+          e.clientX - rect.left - rect.width / 2,
+          e.clientY - rect.top - rect.height / 2
+        );
       },
       { passive: false }
     );
 
-    // drag empty canvas / plate to pan; a click without movement deselects
-    canvas.addEventListener("mousedown", function (e) {
-      if (e.button !== 0) return;
-      // devices and topology nodes handle their own drag — don't pan under them
-      if (e.target.closest(".device, .topo-node")) return;
-      var startX = e.clientX, startY = e.clientY;
-      var baseX = panX, baseY = panY;
-      var moved = false;
+    // one pointer drags to pan; two pointers pinch to zoom. A tap on empty
+    // canvas (no movement) deselects.
+    var pointers = {};
+    var pan = null; // { baseX, baseY, startX, startY, moved }
+    var pinch = null; // { dist, zoom, cx, cy }
 
-      function move(ev) {
-        var dx = ev.clientX - startX, dy = ev.clientY - startY;
-        if (!moved && Math.abs(dx) + Math.abs(dy) > 3) {
-          moved = true;
+    function n() {
+      return Object.keys(pointers).length;
+    }
+    function pts() {
+      return Object.keys(pointers).map(function (k) {
+        return pointers[k];
+      });
+    }
+    function makePinch() {
+      var p = pts();
+      var rect = canvas.getBoundingClientRect();
+      return {
+        dist: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1,
+        zoom: zoom,
+        cx: (p[0].x + p[1].x) / 2 - rect.left - rect.width / 2,
+        cy: (p[0].y + p[1].y) / 2 - rect.top - rect.height / 2,
+      };
+    }
+
+    canvas.addEventListener("pointerdown", function (e) {
+      if (e.target.closest(".device, .topo-node")) return; // own drag handlers
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (n() === 1) {
+        pan = { baseX: panX, baseY: panY, startX: e.clientX, startY: e.clientY, moved: false };
+        pinch = null;
+      } else if (n() === 2) {
+        pan = null;
+        pinch = makePinch();
+      }
+    });
+
+    document.addEventListener("pointermove", function (e) {
+      if (!(e.pointerId in pointers)) return;
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (pinch && n() >= 2) {
+        var p = pts();
+        var dist = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
+        zoomAt(pinch.zoom * (dist / pinch.dist), pinch.cx, pinch.cy);
+      } else if (pan) {
+        var dx = e.clientX - pan.startX,
+          dy = e.clientY - pan.startY;
+        if (!pan.moved && Math.abs(dx) + Math.abs(dy) > 3) {
+          pan.moved = true;
           canvas.classList.add("panning");
         }
-        if (moved) {
-          panX = baseX + dx;
-          panY = baseY + dy;
+        if (pan.moved) {
+          panX = pan.baseX + dx;
+          panY = pan.baseY + dy;
           applyTransform();
         }
       }
-      function up() {
-        document.removeEventListener("mousemove", move);
-        document.removeEventListener("mouseup", up);
-        canvas.classList.remove("panning");
-        if (!moved) State.select(null); // it was a click on empty space
-      }
-      document.addEventListener("mousemove", move);
-      document.addEventListener("mouseup", up);
     });
+
+    function end(e) {
+      if (!(e.pointerId in pointers)) return;
+      var wasTap = pan && !pan.moved && n() === 1;
+      delete pointers[e.pointerId];
+      if (n() < 2) pinch = null;
+      if (n() === 1) {
+        // a finger lifted after a pinch → keep panning with the remaining one
+        var k = Object.keys(pointers)[0];
+        pan = { baseX: panX, baseY: panY, startX: pointers[k].x, startY: pointers[k].y, moved: true };
+      } else if (n() === 0) {
+        if (wasTap) State.select(null);
+        pan = null;
+        canvas.classList.remove("panning");
+      }
+    }
+    document.addEventListener("pointerup", end);
+    document.addEventListener("pointercancel", end);
+  }
+
+  // zoom to `rawZoom`, keeping the point (cx,cy) (canvas-centre-relative) fixed
+  function zoomAt(rawZoom, cx, cy) {
+    var old = zoom;
+    var next = clampZoom(rawZoom);
+    if (next === old) return;
+    var ratio = next / old;
+    panX += (cx - panX) * (1 - ratio);
+    panY += (cy - panY) * (1 - ratio);
+    zoom = next;
+    applyTransform();
   }
 
   function clampZoom(z) {
@@ -668,5 +735,6 @@ window.Rack = (function () {
     resetZoom: resetZoom,
     setZoom: setZoom,
     textOn: textOn,
+    beginPlaceDrag: beginPlaceDrag,
   };
 })();

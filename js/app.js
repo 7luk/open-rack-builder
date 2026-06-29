@@ -258,32 +258,33 @@ window.App = (function () {
     if (fn) fn();
   }
 
-  /* ---------- library: search, drag, click-to-add ---------- */
+  /* ---------- library: search, drag / tap to add ---------- */
   function bindLibrary() {
     refs.search.addEventListener("input", function () {
       searchQuery = refs.search.value;
       Library.render(refs.libraryList, searchQuery);
     });
 
-    // drag source
-    refs.libraryList.addEventListener("dragstart", function (e) {
-      var item = e.target.closest(".lib-item");
-      if (!item) return;
-      App.dragDef = Library.defFromEl(item);
-      App.dragMove = null;
-      e.dataTransfer.effectAllowed = "copy";
-      e.dataTransfer.setData("text/plain", App.dragDef.name);
-    });
-    refs.libraryList.addEventListener("dragend", function () {
-      App.dragDef = null;
-    });
+    // a pending touch tap (so we don't fight vertical list scrolling)
+    var libTap = null;
 
-    // click a library row to drop into the first free slot
-    refs.libraryList.addEventListener("click", function (e) {
+    refs.libraryList.addEventListener("pointerdown", function (e) {
       var item = e.target.closest(".lib-item");
       if (!item) return;
-      var id = State.addDevice(Library.defFromEl(item), null);
-      if (!id) flash("No room in the rack");
+      var def = Library.defFromEl(item);
+      if (e.pointerType === "mouse") {
+        // mouse: full drag to a slot (a no-move click adds to the first free)
+        Rack.beginPlaceDrag("add", { def: def, u: def.u, label: def.name }, e);
+      } else {
+        // touch / pen: remember the tap; the list stays free to scroll
+        libTap = { x: e.clientX, y: e.clientY, def: def };
+      }
+    });
+    refs.libraryList.addEventListener("pointerup", function (e) {
+      if (e.pointerType === "mouse" || !libTap) return;
+      var moved = Math.abs(e.clientX - libTap.x) + Math.abs(e.clientY - libTap.y) > 8;
+      if (!moved && !State.addDevice(libTap.def, null)) flash("No room in the rack");
+      libTap = null;
     });
   }
 

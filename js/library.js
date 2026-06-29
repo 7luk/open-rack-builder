@@ -164,7 +164,6 @@ window.Library = (function () {
   function itemEl(d) {
     var el = document.createElement("div");
     el.className = "lib-item" + (d.custom || d.community ? " custom" : "");
-    el.draggable = true;
 
     // payload used by the rack drop handler
     el.dataset.name = d.name;

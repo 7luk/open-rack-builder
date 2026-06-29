@@ -8,6 +8,8 @@
   align-items: center;
   justify-content: center;
   cursor: grab;
+  /* we own panning / pinch-zoom here, so suppress the browser's touch gestures */
+  touch-action: none;
 }
 .canvas.panning {
   cursor: grabbing;
@@ -574,6 +576,17 @@
   font-size: 12px;
   color: #fff;
   font-weight: 500;
+}
+/* a live ghost chip that follows the pointer while dragging a library item */
+.drag-ghost.floating {
+  position: fixed;
+  top: auto;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 500;
+  background: var(--text-primary);
+  color: var(--surface-0);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
 }
 
 /* ---------- Topology / blueprint view ---------- */
