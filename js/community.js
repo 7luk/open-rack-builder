@@ -39,6 +39,7 @@ window.Community = (function () {
         return;
       }
       sb = client;
+      if (refs.menu) refs.menu.hidden = false; // backend live → reveal the menu
 
       // react to sign-in / sign-out / token refresh / redirect-restore
       sb.auth.onAuthStateChange(function (_event, s) {
