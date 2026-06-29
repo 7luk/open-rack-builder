@@ -100,8 +100,9 @@ window.Library = (function () {
     return groups;
   }
 
-  // per-category collapsed state (transient UI; keyed by category name)
-  var collapsed = {};
+  // per-category expand state (transient UI). Categories start collapsed for a
+  // tidier, more professional list; a category is open only once toggled.
+  var expanded = {};
 
   /* render the list into `container`; `query` is the current search text */
   function render(container, query) {
@@ -121,8 +122,8 @@ window.Library = (function () {
       if (!items || !items.length) return;
       any = true;
 
-      // an active search forces every matching category open
-      var isCollapsed = !q && !!collapsed[cat];
+      // collapsed by default; an active search forces matching categories open
+      var isCollapsed = !q && !expanded[cat];
 
       var head = document.createElement("button");
       head.type = "button";
@@ -140,7 +141,7 @@ window.Library = (function () {
       head.appendChild(label);
       head.appendChild(count);
       head.addEventListener("click", function () {
-        collapsed[cat] = !collapsed[cat];
+        expanded[cat] = !expanded[cat];
         render(container, query);
       });
       container.appendChild(head);

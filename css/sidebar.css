@@ -47,12 +47,12 @@
   gap: 6px;
   width: 100%;
   text-align: left;
-  font-size: 10.5px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   padding: 10px 8px 4px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
   background: transparent;
 }
