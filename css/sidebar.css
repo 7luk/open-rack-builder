@@ -288,3 +288,42 @@
 .props-device .btn-danger {
   margin-top: 4px;
 }
+
+/* collapsible "Advanced" section in the device properties */
+.props-advanced {
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-1);
+}
+.props-advanced > summary.props-adv-summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  user-select: none;
+}
+.props-adv-summary::-webkit-details-marker {
+  display: none;
+}
+.props-adv-summary::before {
+  content: "▸";
+  font-size: 9px;
+  color: var(--text-muted);
+  transition: transform 0.12s ease;
+}
+.props-advanced[open] > .props-adv-summary::before {
+  transform: rotate(90deg);
+}
+/* give the fields breathing room inside the bordered box */
+.props-advanced > .field {
+  padding: 0 10px;
+}
+.props-advanced > .field:last-child {
+  padding-bottom: 10px;
+}

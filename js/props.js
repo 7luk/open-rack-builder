@@ -11,6 +11,10 @@ window.Props = (function () {
 
   var globalEl, deviceEl;
 
+  // remembers whether the device "Advanced" section is expanded, so a commit-
+  // triggered re-render doesn't collapse it back while the user is editing.
+  var advancedOpen = false;
+
   // faceplate palette — same dark-leaning family as the library
   var PALETTE = [
     "#1a1a1d", "#23262b", "#2b2b2e", "#1c1f24", "#1e2a33",
@@ -103,28 +107,35 @@ window.Props = (function () {
 
     deviceEl.appendChild(el("div", "props-title", "Device"));
 
+    // Advanced: the detailed fields are tucked into a collapsible section so
+    // they don't crowd the panel. Open state persists across re-renders.
+    var adv = el("details", "props-advanced");
+    adv.open = advancedOpen;
+    adv.addEventListener("toggle", function () {
+      advancedOpen = adv.open;
+    });
+    adv.appendChild(el("summary", "props-adv-summary", "Advanced"));
+
     // label (name)
-    deviceEl.appendChild(
+    adv.appendChild(
       textField("Label", d.name, function (v) {
         State.updateDevice(d.id, { name: v || "Device" });
       })
     );
     // brand / model
-    deviceEl.appendChild(
+    adv.appendChild(
       textField("Brand / model", d.brand, function (v) {
         State.updateDevice(d.id, { brand: v });
       })
     );
-
     // chassis depth (mm) — drives the side / x-ray view
-    deviceEl.appendChild(
+    adv.appendChild(
       numberField("Depth (mm)", d.depth, 20, 2000, function (v) {
         var n = Math.round(Number(v));
         if (!isFinite(n)) return;
         State.updateDevice(d.id, { depth: Math.max(20, Math.min(2000, n)) });
       })
     );
-
     // faceplate color swatches
     var colorField = el("div", "field");
     colorField.appendChild(el("label", null, "Faceplate"));
@@ -139,9 +150,20 @@ window.Props = (function () {
       sw.appendChild(s);
     });
     colorField.appendChild(sw);
-    deviceEl.appendChild(colorField);
+    adv.appendChild(colorField);
+    // rear labels (shown in rear view)
+    adv.appendChild(
+      textareaField(
+        "Rear ports / patch (comma-separated)",
+        d.rearLabel,
+        function (v) {
+          State.updateDevice(d.id, { rearLabel: v });
+        }
+      )
+    );
+    deviceEl.appendChild(adv);
 
-    // status LED toggle
+    // status LED toggle (kept out of Advanced — quick toggle)
     var ledField = el("div", "field");
     var ledRow = el("div", "toggle-row");
     ledRow.appendChild(el("label", null, "Status LED"));
@@ -152,17 +174,6 @@ window.Props = (function () {
     ledRow.appendChild(toggle);
     ledField.appendChild(ledRow);
     deviceEl.appendChild(ledField);
-
-    // rear labels (shown in rear view)
-    deviceEl.appendChild(
-      textareaField(
-        "Rear ports / patch (comma-separated)",
-        d.rearLabel,
-        function (v) {
-          State.updateDevice(d.id, { rearLabel: v });
-        }
-      )
-    );
 
     // slot info + nudge
     deviceEl.appendChild(slotInfo(d));
