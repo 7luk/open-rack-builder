@@ -23,6 +23,8 @@ window.Rack = (function () {
   var viewports = {};
   var lastView = null;
   var suppressTopoClick = false; // set right after a topo node drag
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var topoCablesSvg = null; // the cable overlay for the current topology render
   var MIN_ZOOM = 0.4;
   var MAX_ZOOM = 3;
 
@@ -70,7 +72,8 @@ window.Rack = (function () {
       unit.appendChild(buildWheels(isSide, isSide ? sidePlatePx(s) : PLATE_PX));
     }
     mount.appendChild(unit);
-    applyTransform();
+    applyTransform(); // set the transform first so cable measurements are correct
+    if (isTopo) drawTopoCables(mount.querySelector(".topo"));
   }
 
   /* ---------- front / rear share the rack plate ---------- */
@@ -492,7 +495,155 @@ window.Rack = (function () {
       p.style.background = window.Ports.color(type);
       p.style.borderColor = window.Ports.color(type);
     }
+    // drag from a pin to another compatible pin to lay a cable
+    p.addEventListener("pointerdown", function (e) {
+      startCableDrag(e, devId, portIndex, type || "other", p);
+    });
     return p;
+  }
+
+  /* ---------- cables (topology routing) ---------- */
+  // build the SVG overlay of all cables for the current topology layout
+  function drawTopoCables(wrap) {
+    topoCablesSvg = null;
+    if (!wrap) return;
+    var w = wrap.offsetWidth,
+      h = wrap.offsetHeight;
+    var svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("class", "topo-cables");
+    svg.setAttribute("width", w);
+    svg.setAttribute("height", h);
+
+    var topoRect = wrap.getBoundingClientRect();
+    var pins = {};
+    Array.prototype.forEach.call(wrap.querySelectorAll(".topo-pin"), function (p) {
+      pins[p.dataset.dev + "|" + p.dataset.port + "|" + p.dataset.side] = p;
+    });
+    function center(el) {
+      var r = el.getBoundingClientRect();
+      return {
+        x: (r.left + r.width / 2 - topoRect.left) / zoom,
+        y: (r.top + r.height / 2 - topoRect.top) / zoom,
+      };
+    }
+
+    State.get().cables.forEach(function (c) {
+      var pair = bestPins(pins, c, center);
+      if (!pair) return;
+      var path = document.createElementNS(SVGNS, "path");
+      path.setAttribute("class", "topo-cable");
+      path.setAttribute("d", cablePath(pair.a.x, pair.a.y, pair.b.x, pair.b.y));
+      path.style.stroke = window.Ports.color(c.type);
+      path.addEventListener("click", function (e) {
+        e.stopPropagation();
+        State.removeCable(c.id);
+        App.flash("Cable removed");
+      });
+      svg.appendChild(path);
+    });
+
+    wrap.insertBefore(svg, wrap.firstChild); // behind the nodes
+    topoCablesSvg = svg;
+  }
+
+  // pick the closest pin pair (each port has a left + right pin) for a cable
+  function bestPins(pins, c, center) {
+    var aC = ["l", "r"]
+      .map(function (s) { return pins[c.a.dev + "|" + c.a.port + "|" + s]; })
+      .filter(Boolean);
+    var bC = ["l", "r"]
+      .map(function (s) { return pins[c.b.dev + "|" + c.b.port + "|" + s]; })
+      .filter(Boolean);
+    if (!aC.length || !bC.length) return null;
+    var best = null,
+      bestD = Infinity;
+    aC.forEach(function (ae) {
+      var ac = center(ae);
+      bC.forEach(function (be) {
+        var bc = center(be);
+        var d = (bc.x - ac.x) * (bc.x - ac.x) + (bc.y - ac.y) * (bc.y - ac.y);
+        if (d < bestD) {
+          bestD = d;
+          best = { a: ac, b: bc };
+        }
+      });
+    });
+    return best;
+  }
+
+  // a smooth horizontal-ish bezier between two points
+  function cablePath(ax, ay, bx, by) {
+    var dx = Math.max(30, Math.abs(bx - ax) * 0.5);
+    return "M" + ax + "," + ay + " C" + (ax + dx) + "," + ay + " " + (bx - dx) + "," + by + " " + bx + "," + by;
+  }
+
+  // drag from a pin: rubber-band a temp cable, drop on a compatible pin to connect
+  function startCableDrag(e, dev, port, type, pinEl) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation(); // not a node drag / pan
+    var wrap = mount.querySelector(".topo");
+    if (!wrap || !topoCablesSvg) return;
+    var topoRect = wrap.getBoundingClientRect();
+    function local(clientX, clientY) {
+      return { x: (clientX - topoRect.left) / zoom, y: (clientY - topoRect.top) / zoom };
+    }
+    var r = pinEl.getBoundingClientRect();
+    var start = local(r.left + r.width / 2, r.top + r.height / 2);
+
+    var temp = document.createElementNS(SVGNS, "path");
+    temp.setAttribute("class", "topo-cable temp");
+    temp.style.stroke = window.Ports.color(type);
+    topoCablesSvg.appendChild(temp);
+    highlightCompatible(wrap, type, dev, port, true);
+
+    var pid = e.pointerId;
+    function mm(ev) {
+      if (ev.pointerId !== pid) return;
+      var p = local(ev.clientX, ev.clientY);
+      temp.setAttribute("d", cablePath(start.x, start.y, p.x, p.y));
+    }
+    function up(ev) {
+      if (ev.pointerId !== pid) return;
+      document.removeEventListener("pointermove", mm);
+      document.removeEventListener("pointerup", up);
+      document.removeEventListener("pointercancel", up);
+      highlightCompatible(wrap, type, dev, port, false);
+      if (temp.parentNode) temp.parentNode.removeChild(temp);
+      suppressTopoClick = true; // swallow the trailing click on the node
+      setTimeout(function () { suppressTopoClick = false; }, 0);
+      var t = document.elementFromPoint(ev.clientX, ev.clientY);
+      var tp = t ? t.closest(".topo-pin") : null;
+      if (tp) {
+        var reason = State.addCable(
+          { dev: dev, port: port },
+          { dev: tp.dataset.dev, port: parseInt(tp.dataset.port, 10) }
+        );
+        flashCable(reason);
+      }
+    }
+    document.addEventListener("pointermove", mm);
+    document.addEventListener("pointerup", up);
+    document.addEventListener("pointercancel", up);
+  }
+
+  // glow the pins a new cable could legally land on (same type, not itself)
+  function highlightCompatible(wrap, type, dev, port, on) {
+    Array.prototype.forEach.call(wrap.querySelectorAll(".topo-pin"), function (p) {
+      var ok =
+        on &&
+        p.dataset.type === type &&
+        !(p.dataset.dev === dev && parseInt(p.dataset.port, 10) === port);
+      p.classList.toggle("compatible", ok);
+    });
+  }
+
+  function flashCable(reason) {
+    if (reason == null) App.flash("Cable connected");
+    else if (reason === "type") App.flash("Can't connect different connector types");
+    else if (reason === "busy") App.flash("That port is already connected");
+    else if (reason === "dup") App.flash("Those ports are already connected");
+    // "same" / "invalid" → silent (just a stray release)
   }
 
   /* ---------- wheels / casters (minimalist) ---------- */

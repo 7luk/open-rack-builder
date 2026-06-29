@@ -35,6 +35,7 @@ window.State = (function () {
         simpleMode: false, // render the generic placeholder plates, ignore images
       },
       devices: [], // placed devices
+      cables: [], // connections between device ports (topology routing)
       customLibrary: [], // user-defined device templates
       selectedId: null,
     };
@@ -190,6 +191,7 @@ window.State = (function () {
     data.devices = data.devices.filter(function (d) {
       return d.id !== id;
     });
+    dropCablesFor(id); // a removed device takes its cables with it
     if (data.selectedId === id) data.selectedId = null;
     if (data.devices.length !== before) notify();
   }
@@ -199,6 +201,9 @@ window.State = (function () {
     Object.keys(patch).forEach(function (k) {
       d[k] = patch[k];
     });
+    // editing a device's ports regenerates the list, so its cables (which
+    // reference port positions) are no longer valid — drop them.
+    if (patch.hasOwnProperty("ports")) dropCablesFor(id);
     notify();
   }
   /* move a device to a new top row if it fits */
@@ -237,8 +242,68 @@ window.State = (function () {
   }
   function clearRack() {
     data.devices = [];
+    data.cables = [];
     data.selectedId = null;
     notify();
+  }
+
+  /* ---------- cables (port-to-port routing) ----------
+     a / b are port refs: { dev: deviceId, port: portIndex }. A cable only
+     forms between matching port types, and each port takes one cable.
+     addCable returns null on success, or a reason string for the UI. */
+  function addCable(a, b) {
+    if (!a || !b) return "invalid";
+    if (sameRef(a, b)) return "same";
+    var ta = portTypeOf(a),
+      tb = portTypeOf(b);
+    if (ta == null || tb == null) return "invalid";
+    if (ta !== tb) return "type";
+    if (portConnected(a) || portConnected(b)) return "busy";
+    if (cableExists(a, b)) return "dup";
+    data.cables.push({
+      id: cuid(),
+      a: { dev: a.dev, port: a.port },
+      b: { dev: b.dev, port: b.port },
+      type: ta,
+    });
+    notify();
+    return null;
+  }
+  function removeCable(id) {
+    var before = data.cables.length;
+    data.cables = data.cables.filter(function (c) {
+      return c.id !== id;
+    });
+    if (data.cables.length !== before) notify();
+  }
+  function portTypeOf(ref) {
+    var d = byId(ref.dev);
+    if (!d || !d.ports) return null;
+    var p = d.ports[ref.port];
+    return p ? p.type : null;
+  }
+  function portConnected(ref) {
+    return data.cables.some(function (c) {
+      return sameRef(c.a, ref) || sameRef(c.b, ref);
+    });
+  }
+  function cableExists(a, b) {
+    return data.cables.some(function (c) {
+      return (
+        (sameRef(c.a, a) && sameRef(c.b, b)) || (sameRef(c.a, b) && sameRef(c.b, a))
+      );
+    });
+  }
+  function sameRef(x, y) {
+    return x.dev === y.dev && Number(x.port) === Number(y.port);
+  }
+  function dropCablesFor(devId) {
+    data.cables = data.cables.filter(function (c) {
+      return c.a.dev !== devId && c.b.dev !== devId;
+    });
+  }
+  function cuid() {
+    return "cab-" + Math.random().toString(36).slice(2, 9);
   }
 
   /* ---------- selection ---------- */
@@ -373,6 +438,32 @@ window.State = (function () {
         : [],
       selectedId: null,
     };
+
+    // cables: sanitise refs, then keep only those whose endpoints still resolve
+    var ids = {};
+    out.devices.forEach(function (d) {
+      ids[d.id] = d;
+    });
+    out.cables = (Array.isArray(raw.cables) ? raw.cables : [])
+      .map(function (c) {
+        c = c || {};
+        var a = c.a || {},
+          b = c.b || {};
+        return {
+          id: c.id || cuid(),
+          a: { dev: String(a.dev || ""), port: clamp(Math.round(Number(a.port) || 0), 0, 255) },
+          b: { dev: String(b.dev || ""), port: clamp(Math.round(Number(b.port) || 0), 0, 255) },
+          type: typeof c.type === "string" ? c.type : "other",
+        };
+      })
+      .filter(function (c) {
+        var da = ids[c.a.dev],
+          db = ids[c.b.dev];
+        return (
+          da && db && da.ports[c.a.port] != null && db.ports[c.b.port] != null
+        );
+      });
+
     return out;
   }
 
@@ -426,6 +517,9 @@ window.State = (function () {
     moveDevice: moveDevice,
     nudge: nudge,
     setTopoPos: setTopoPos,
+    addCable: addCable,
+    removeCable: removeCable,
+    portConnected: portConnected,
     repositionDevice: repositionDevice,
     clearRack: clearRack,
     // selection
