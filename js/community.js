@@ -281,7 +281,12 @@ window.Community = (function () {
     });
   }
 
-  /* ---------- publishing ---------- */
+  /* ---------- publishing ----------
+     A device is identified by its normalised brand + name. No two community
+     devices may share that identity, so the same gear can't be published
+     twice and one user can't re-publish (copy) another's work. This is
+     enforced for real by a UNIQUE index in the database (schema.sql); the
+     client check below is just for an instant, friendly message. */
   function publish(device) {
     if (!sb) return;
     if (!session) {
@@ -290,6 +295,8 @@ window.Community = (function () {
       return;
     }
     var u = user();
+    var slug = normSlug(device.brand, device.name);
+    var label = "“" + (device.name || "That device") + "”";
     var row = {
       name: device.name || "Device",
       brand: device.brand || "",
@@ -300,17 +307,43 @@ window.Community = (function () {
       rear_label: device.rearLabel || "",
       author_name: u ? u.name : null,
     };
-    sb.from("devices")
-      .insert(row)
-      .then(function (res) {
-        if (res.error) {
-          console.warn("publish failed", res.error);
-          App.flash("Publish failed — try again");
-          return;
-        }
-        App.flash("Published to the community library");
-        loadDevices();
-      });
+
+    // refresh first so the duplicate check sees the live list, then guard
+    loadDevices().then(function () {
+      var clash = catalog.filter(function (c) {
+        return normSlug(c.brand, c.name) === slug;
+      })[0];
+      if (clash) {
+        App.flash(
+          clash.author && u && clash.author === u.name
+            ? "You already published " + label
+            : label + " is already in the community library"
+        );
+        return;
+      }
+      sb.from("devices")
+        .insert(row)
+        .then(function (res) {
+          if (res.error) {
+            // 23505 = unique violation: someone published it first
+            if (res.error.code === "23505") {
+              App.flash(label + " is already in the community library");
+            } else {
+              console.warn("publish failed", res.error);
+              App.flash("Publish failed — try again");
+            }
+            return;
+          }
+          App.flash("Published to the community library");
+          loadDevices();
+        });
+    });
+  }
+
+  // normalised device identity: brand + name, collapsed/trimmed/lowercased.
+  // MUST match the expression behind the DB unique index in schema.sql.
+  function normSlug(brand, name) {
+    return ((brand || "") + " " + (name || "")).replace(/\s+/g, " ").trim().toLowerCase();
   }
 
   /* ---------- auth ---------- */

@@ -73,5 +73,15 @@ create trigger devices_set_dev_flag
   before insert on public.devices
   for each row execute function public.set_device_dev_flag();
 
+-- No duplicates / no copying someone else's work: a device is identified by
+-- its normalised brand + name (trimmed, internal whitespace collapsed,
+-- lowercased). This UNIQUE index makes it impossible to publish the same gear
+-- twice — including re-publishing a device another user already submitted.
+-- The expression MUST match normSlug() in js/community.js.
+-- (If this errors because duplicates already exist, remove them first.)
+create unique index if not exists devices_unique_identity on public.devices (
+  lower(btrim(regexp_replace(btrim(coalesce(brand, '')) || ' ' || btrim(coalesce(name, '')), '\s+', ' ', 'g')))
+);
+
 -- Optional moderation later: add a `boolean approved default false` column and
 -- change the read policy to `using (approved)` so only vetted devices show.
