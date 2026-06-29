@@ -164,5 +164,13 @@
   <script src="js/supabase.js?v=34"></script>
   <script src="js/community.js?v=34"></script>
   <script src="js/app.js?v=34"></script>
+  <script>document.addEventListener("DOMContentLoaded",function(){setTimeout(function(){
+    var a=State.addDevice({name:"Stagebox",brand:"Midas",u:3,ports:[{type:"xlr",dir:"out",side:"rear",label:"To Amp L"}]},1);
+    var b=State.addDevice({name:"Amp",brand:"Crown",u:2,ports:[{type:"xlr",dir:"in",side:"rear",label:"Input L"}]},6);
+    State.setTopoPos(b,360,90);
+    State.addCable({dev:a,port:0},{dev:b,port:0});
+    var cid=State.get().cables[0].id; State.selectCable(cid);
+    State.setView("topology");
+  },70);});</script>
 </body>
 </html>

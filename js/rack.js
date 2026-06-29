@@ -539,20 +539,18 @@ window.Rack = (function () {
       };
     }
 
+    var selId = State.get().selectedCableId;
     State.get().cables.forEach(function (c) {
       var pair = bestPins(pins, c, center);
       if (!pair) return;
-      var path = document.createElementNS(SVGNS, "path");
-      path.setAttribute("class", "topo-cable");
-      path.setAttribute("d", cablePath(pair.a.x, pair.a.y, pair.b.x, pair.b.y));
-      path.style.stroke = window.Ports.color(c.type);
-      path.addEventListener("click", function (e) {
-        e.stopPropagation();
-        State.removeCable(c.id);
-        App.flash("Cable removed");
-      });
-      svg.appendChild(path);
-      svg.appendChild(cableLabelEl((pair.a.x + pair.b.x) / 2, (pair.a.y + pair.b.y) / 2 - 6, cableLenText(c)));
+      paintCable(
+        svg,
+        c,
+        cablePath(pair.a.x, pair.a.y, pair.b.x, pair.b.y),
+        (pair.a.x + pair.b.x) / 2,
+        (pair.a.y + pair.b.y) / 2,
+        c.id === selId
+      );
     });
 
     wrap.insertBefore(svg, wrap.firstChild); // behind the nodes
@@ -584,24 +582,70 @@ window.Rack = (function () {
     svg.setAttribute("class", "topo-cables over"); // .over → above the devices
     svg.setAttribute("width", plate.offsetWidth);
     svg.setAttribute("height", plate.offsetHeight);
+    var selId = State.get().selectedCableId;
     State.get().cables.forEach(function (c) {
       var a = anchor(c.a),
         b = anchor(c.b);
       if (!a || !b) return;
       var sag = Math.min(90, Math.max(12, Math.sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y)) * 0.18));
-      var path = document.createElementNS(SVGNS, "path");
-      path.setAttribute("class", "topo-cable");
-      path.setAttribute("d", cableSagPath(a.x, a.y, b.x, b.y));
-      path.style.stroke = window.Ports.color(c.type);
-      path.addEventListener("click", function (e) {
-        e.stopPropagation();
-        State.removeCable(c.id);
-        App.flash("Cable removed");
-      });
-      svg.appendChild(path);
-      svg.appendChild(cableLabelEl((a.x + b.x) / 2, (a.y + b.y) / 2 + sag * 0.6, cableLenText(c)));
+      paintCable(
+        svg,
+        c,
+        cableSagPath(a.x, a.y, b.x, b.y),
+        (a.x + b.x) / 2,
+        (a.y + b.y) / 2 + sag * 0.6,
+        c.id === selId
+      );
     });
     plate.appendChild(svg); // drape the cables on top of the device plates
+  }
+
+  // draw one cable: a wide invisible hit area, the visible stroke, its live
+  // length label, and (when selected) a circular − button to remove it
+  function paintCable(svg, c, d, midX, midY, selected) {
+    var hit = document.createElementNS(SVGNS, "path");
+    hit.setAttribute("class", "topo-cable-hit");
+    hit.setAttribute("d", d);
+    var path = document.createElementNS(SVGNS, "path");
+    path.setAttribute("class", "topo-cable" + (selected ? " selected" : ""));
+    path.setAttribute("d", d);
+    path.style.stroke = window.Ports.color(c.type);
+    function down(e) { e.stopPropagation(); } // don't let the canvas pan/deselect
+    function pick(e) {
+      e.stopPropagation();
+      State.selectCable(c.id);
+    }
+    hit.addEventListener("pointerdown", down);
+    hit.addEventListener("click", pick);
+    path.addEventListener("pointerdown", down);
+    path.addEventListener("click", pick);
+    svg.appendChild(hit);
+    svg.appendChild(path);
+    svg.appendChild(cableLabelEl(midX, midY - (selected ? 16 : 0), cableLenText(c)));
+    if (selected) svg.appendChild(cableRemoveBtn(midX, midY, c.id));
+  }
+
+  function cableRemoveBtn(x, y, id) {
+    var g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("class", "cable-remove");
+    g.setAttribute("transform", "translate(" + x + "," + y + ")");
+    var circle = document.createElementNS(SVGNS, "circle");
+    circle.setAttribute("r", 10);
+    var minus = document.createElementNS(SVGNS, "line");
+    minus.setAttribute("x1", -5);
+    minus.setAttribute("y1", 0);
+    minus.setAttribute("x2", 5);
+    minus.setAttribute("y2", 0);
+    minus.setAttribute("class", "cable-remove-minus");
+    g.appendChild(circle);
+    g.appendChild(minus);
+    g.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+    g.addEventListener("click", function (e) {
+      e.stopPropagation();
+      State.removeCable(id);
+      App.flash("Cable removed");
+    });
+    return g;
   }
 
   // an SVG length label drawn at a cable's midpoint (live; updates on re-render)
@@ -615,7 +659,8 @@ window.Rack = (function () {
     return t;
   }
   function cableLenText(c) {
-    return State.cableStandardM(State.cableLengthMm(c)) + " m";
+    // raw distance-based length (1 decimal) so it visibly tracks device moves
+    return Math.round(State.cableLengthMm(c) / 100) / 10 + " m";
   }
 
   // a gently sagging curve (catenary-ish) between two points

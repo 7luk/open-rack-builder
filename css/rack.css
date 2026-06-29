@@ -839,3 +839,32 @@
   stroke-dasharray: 5 4;
   opacity: 0.8;
 }
+.topo-cable.selected {
+  stroke-width: 4.5;
+}
+/* a wide invisible hit area so the thin cable is easy to click */
+.topo-cable-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+/* circular − button shown on the selected cable */
+.cable-remove {
+  cursor: pointer;
+  pointer-events: all;
+}
+.cable-remove circle {
+  fill: var(--danger);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+.cable-remove:hover circle {
+  fill: #b91c1c;
+}
+.cable-remove-minus {
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+}

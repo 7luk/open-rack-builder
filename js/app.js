@@ -105,13 +105,13 @@ window.App = (function () {
     // cable totals in the header bar (sum of recommended standard lengths)
     var cables = s.cables || [];
     if (cables.length) {
-      var totalM = cables.reduce(function (sum, c) {
-        return sum + State.cableStandardM(State.cableLengthMm(c));
+      var totalMm = cables.reduce(function (sum, c) {
+        return sum + State.cableLengthMm(c);
       }, 0);
       refs.cableReadout.hidden = false;
       refs.cableReadout.textContent =
         cables.length + (cables.length > 1 ? " cables" : " cable") +
-        " · ≈" + (Math.round(totalM * 10) / 10) + " m";
+        " · ≈" + (Math.round(totalMm / 100) / 10) + " m";
     } else {
       refs.cableReadout.hidden = true;
     }

@@ -38,6 +38,7 @@ window.State = (function () {
       cables: [], // connections between device ports (topology routing)
       customLibrary: [], // user-defined device templates
       selectedId: null,
+      selectedCableId: null,
     };
   }
 
@@ -279,7 +280,13 @@ window.State = (function () {
     data.cables = data.cables.filter(function (c) {
       return c.id !== id;
     });
+    if (data.selectedCableId === id) data.selectedCableId = null;
     if (data.cables.length !== before) notify();
+  }
+  function selectCable(id) {
+    data.selectedCableId = id;
+    data.selectedId = null; // a cable and a device aren't selected at once
+    notify();
   }
   function portAt(ref) {
     var d = byId(ref.dev);
@@ -330,6 +337,7 @@ window.State = (function () {
   /* ---------- selection ---------- */
   function select(id) {
     data.selectedId = id;
+    data.selectedCableId = null; // selecting a device (or empty) clears the cable
     notify();
   }
   function getSelected() {
@@ -458,6 +466,7 @@ window.State = (function () {
           })
         : [],
       selectedId: null,
+      selectedCableId: null,
     };
 
     // cables: sanitise refs, then keep only those whose endpoints still resolve
@@ -544,6 +553,7 @@ window.State = (function () {
     setTopoPos: setTopoPos,
     addCable: addCable,
     removeCable: removeCable,
+    selectCable: selectCable,
     portConnected: portConnected,
     cableLengthMm: cableLengthMm,
     cableStandardM: cableStandardM,
