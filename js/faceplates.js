@@ -45,7 +45,9 @@ window.Faceplates = (function () {
   /* generic blank panel shown until the user frames an illustration */
   function placeholder(device, side) {
     var box = document.createElement("div");
-    box.className = "fp-blank" + (side === "rear" ? " fp-blank-rear" : "");
+    // 1U plates are tiny, so a compact variant drops labels/brand to fit
+    var compact = device && device.u <= 1 ? " compact" : "";
+    box.className = "fp-blank" + (side === "rear" ? " fp-blank-rear" : "") + compact;
     box.appendChild(screwLayer());
     box.appendChild(side === "rear" ? rearContent(device) : frontContent(device));
     return box;

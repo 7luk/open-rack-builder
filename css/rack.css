@@ -326,6 +326,26 @@
   padding: 0 12px;
   text-align: center;
   pointer-events: none;
+  overflow: hidden;
+}
+/* 1U plates: trim to essentials so everything fits the short faceplate */
+.fp-blank.compact {
+  gap: 1px;
+}
+.fp-blank.compact .fp-blank-name {
+  font-size: 10px;
+}
+.fp-blank.compact .fp-blank-brand {
+  display: none;
+}
+.fp-blank.compact .fp-port-label {
+  display: none; /* glyphs only in 1U — labels live in topology + properties */
+}
+.fp-blank.compact .fp-ports {
+  gap: 2px 3px;
+}
+.fp-blank.compact .port-glyph {
+  transform: scale(0.82);
 }
 .fp-blank-label {
   display: flex;
