@@ -254,17 +254,19 @@ window.State = (function () {
   function addCable(a, b) {
     if (!a || !b) return "invalid";
     if (sameRef(a, b)) return "same";
-    var ta = portTypeOf(a),
-      tb = portTypeOf(b);
-    if (ta == null || tb == null) return "invalid";
-    if (ta !== tb) return "type";
+    var pa = portAt(a),
+      pb = portAt(b);
+    if (!pa || !pb) return "invalid";
+    if (!window.Ports.compatible(pa.type, pa.dir, pb.type, pb.dir)) {
+      return pa.type !== pb.type ? "type" : "dir";
+    }
     if (portConnected(a) || portConnected(b)) return "busy";
     if (cableExists(a, b)) return "dup";
     data.cables.push({
       id: cuid(),
       a: { dev: a.dev, port: a.port },
       b: { dev: b.dev, port: b.port },
-      type: ta,
+      type: pa.type,
     });
     notify();
     return null;
@@ -276,11 +278,10 @@ window.State = (function () {
     });
     if (data.cables.length !== before) notify();
   }
-  function portTypeOf(ref) {
+  function portAt(ref) {
     var d = byId(ref.dev);
     if (!d || !d.ports) return null;
-    var p = d.ports[ref.port];
-    return p ? p.type : null;
+    return d.ports[ref.port] || null;
   }
   function portConnected(ref) {
     return data.cables.some(function (c) {
@@ -479,13 +480,15 @@ window.State = (function () {
   function numOrNull(v) {
     return typeof v === "number" && isFinite(v) ? v : null;
   }
-  // sanitise a structured ports list: [{type, label}] (see ports.js)
+  // sanitise a structured ports list: [{type, dir, label}] (see ports.js)
   function normalizePorts(arr) {
     if (!Array.isArray(arr)) return [];
     return arr.slice(0, 256).map(function (p) {
       p = p || {};
+      var dir = p.dir === "in" || p.dir === "out" || p.dir === "io" ? p.dir : "io";
       return {
         type: typeof p.type === "string" ? p.type : "other",
+        dir: dir,
         label: typeof p.label === "string" ? p.label : "",
       };
     });

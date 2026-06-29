@@ -314,7 +314,7 @@ window.Rack = (function () {
     if (d.ports && d.ports.length) {
       return {
         list: d.ports.map(function (p) {
-          return { label: p.label, type: p.type };
+          return { label: p.label, type: p.type, dir: p.dir || "io" };
         }),
         generic: false,
       };
@@ -326,12 +326,14 @@ window.Rack = (function () {
       .filter(Boolean);
     if (raw.length) {
       return {
-        list: raw.map(function (l) { return { label: l, type: "other" }; }),
+        list: raw.map(function (l) { return { label: l, type: "other", dir: "io" }; }),
         generic: false,
       };
     }
     return {
-      list: genericPorts(d).map(function (l) { return { label: l, type: "other" }; }),
+      list: genericPorts(d).map(function (l) {
+        return { label: l, type: "other", dir: /out/i.test(l) ? "out" : /in/i.test(l) ? "in" : "io" };
+      }),
       generic: true,
     };
   }
@@ -426,12 +428,13 @@ window.Rack = (function () {
     ports.list.forEach(function (p, i) {
       var row = document.createElement("div");
       row.className = "topo-port";
-      row.appendChild(pin(d.id, i, "l", p.type));
+      row.appendChild(pin(d.id, i, "l", p.type, p.dir));
       var lbl = document.createElement("span");
       lbl.className = "topo-port-label";
-      lbl.textContent = p.label;
+      // direction cue: ◂ for inputs, ▸ for outputs
+      lbl.textContent = (p.dir === "in" ? "◂ " : "") + p.label + (p.dir === "out" ? " ▸" : "");
       row.appendChild(lbl);
-      row.appendChild(pin(d.id, i, "r", p.type));
+      row.appendChild(pin(d.id, i, "r", p.type, p.dir));
       list.appendChild(row);
     });
     node.appendChild(list);
@@ -484,12 +487,13 @@ window.Rack = (function () {
 
   // a single connection pin; the cable layer (later) will anchor to these.
   // colour-coded by port type so the routing endpoints read at a glance.
-  function pin(devId, portIndex, side, type) {
+  function pin(devId, portIndex, side, type, dir) {
     var p = document.createElement("span");
-    p.className = "topo-pin topo-pin-" + side;
+    p.className = "topo-pin topo-pin-" + side + (dir ? " dir-" + dir : "");
     p.dataset.dev = devId;
     p.dataset.port = portIndex;
     p.dataset.side = side;
+    p.dataset.dir = dir || "io";
     if (type) {
       p.dataset.type = type;
       p.style.background = window.Ports.color(type);
@@ -497,7 +501,7 @@ window.Rack = (function () {
     }
     // drag from a pin to another compatible pin to lay a cable
     p.addEventListener("pointerdown", function (e) {
-      startCableDrag(e, devId, portIndex, type || "other", p);
+      startCableDrag(e, devId, portIndex, type || "other", dir || "io", p);
     });
     return p;
   }
@@ -578,7 +582,7 @@ window.Rack = (function () {
   }
 
   // drag from a pin: rubber-band a temp cable, drop on a compatible pin to connect
-  function startCableDrag(e, dev, port, type, pinEl) {
+  function startCableDrag(e, dev, port, type, dir, pinEl) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation(); // not a node drag / pan
@@ -595,7 +599,7 @@ window.Rack = (function () {
     temp.setAttribute("class", "topo-cable temp");
     temp.style.stroke = window.Ports.color(type);
     topoCablesSvg.appendChild(temp);
-    highlightCompatible(wrap, type, dev, port, true);
+    highlightCompatible(wrap, type, dir, dev, port, true);
 
     var pid = e.pointerId;
     function mm(ev) {
@@ -608,7 +612,7 @@ window.Rack = (function () {
       document.removeEventListener("pointermove", mm);
       document.removeEventListener("pointerup", up);
       document.removeEventListener("pointercancel", up);
-      highlightCompatible(wrap, type, dev, port, false);
+      highlightCompatible(wrap, type, dir, dev, port, false);
       if (temp.parentNode) temp.parentNode.removeChild(temp);
       suppressTopoClick = true; // swallow the trailing click on the node
       setTimeout(function () { suppressTopoClick = false; }, 0);
@@ -627,13 +631,15 @@ window.Rack = (function () {
     document.addEventListener("pointercancel", up);
   }
 
-  // glow the pins a new cable could legally land on (same type, not itself)
-  function highlightCompatible(wrap, type, dev, port, on) {
+  // glow the pins a new cable could legally land on: matching type, compatible
+  // direction, not itself, and not already connected
+  function highlightCompatible(wrap, type, dir, dev, port, on) {
     Array.prototype.forEach.call(wrap.querySelectorAll(".topo-pin"), function (p) {
       var ok =
         on &&
-        p.dataset.type === type &&
-        !(p.dataset.dev === dev && parseInt(p.dataset.port, 10) === port);
+        window.Ports.compatible(type, dir, p.dataset.type, p.dataset.dir) &&
+        !(p.dataset.dev === dev && parseInt(p.dataset.port, 10) === port) &&
+        !State.portConnected({ dev: p.dataset.dev, port: parseInt(p.dataset.port, 10) });
       p.classList.toggle("compatible", ok);
     });
   }
@@ -641,6 +647,7 @@ window.Rack = (function () {
   function flashCable(reason) {
     if (reason == null) App.flash("Cable connected");
     else if (reason === "type") App.flash("Can't connect different connector types");
+    else if (reason === "dir") App.flash("Connect an output to an input");
     else if (reason === "busy") App.flash("That port is already connected");
     else if (reason === "dup") App.flash("Those ports are already connected");
     // "same" / "invalid" → silent (just a stray release)

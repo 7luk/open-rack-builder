@@ -314,7 +314,7 @@ window.Props = (function () {
   function portCountsOf(d) {
     if (d.ports && d.ports.length) return Ports.countsFromPorts(d.ports);
     var n = (d.rearLabel || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean).length;
-    return n ? { other: n } : {};
+    return n ? { other: { in: 0, out: n } } : {};
   }
 
   return { init: init, render: render, PALETTE: PALETTE };

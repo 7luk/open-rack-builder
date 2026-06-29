@@ -79,7 +79,7 @@ window.Faceplates = (function () {
       var row = document.createElement("div");
       row.className = "fp-ports";
       ports.forEach(function (p) {
-        row.appendChild(window.Ports.chip(p.type, window.Ports.abbr(p.type)));
+        row.appendChild(window.Ports.glyph(p.type, p.dir));
       });
       wrap.appendChild(row);
     } else {
@@ -103,7 +103,7 @@ window.Faceplates = (function () {
       .split(",")
       .map(function (s) { return s.trim(); })
       .filter(Boolean)
-      .map(function (l) { return { type: "other", label: l }; });
+      .map(function (l) { return { type: "other", dir: "io", label: l }; });
   }
 
   function screwLayer() {

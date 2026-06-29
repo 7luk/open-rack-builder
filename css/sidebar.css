@@ -321,11 +321,11 @@
   margin-top: 4px;
 }
 
-/* ports (connector) editor — used in the "Add new device" wizard + properties */
+/* ports (connector) editor — In/Out counts per type (wizard + properties) */
 .ports-editor {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 .ports-row {
   display: flex;
@@ -340,27 +340,46 @@
 }
 .ports-row-label {
   flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.ports-head .ports-row-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.ports-col-h {
+  flex: 0 0 auto;
+  width: 60px;
+  text-align: center;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
 .ports-stepper {
   display: flex;
   align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
-  gap: 2px;
+  width: 60px;
 }
 .ports-step-btn {
-  width: 24px;
-  height: 24px;
-  font-size: 15px;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
   line-height: 1;
   color: var(--text-primary);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 5px;
 }
 .ports-step-btn:hover {
   background: var(--accent);
@@ -368,11 +387,25 @@
   border-color: var(--accent);
 }
 .ports-val {
-  min-width: 22px;
+  min-width: 18px;
   text-align: center;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
+}
+
+/* drawn connector glyphs on the rear faceplate — shape/size per type */
+.port-glyph {
+  display: inline-block;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+.port-round {
+  border-radius: 50%;
+}
+.port-rect {
+  border-radius: 2px;
 }
 
 /* collapsible "Advanced" section in the device properties */

@@ -233,7 +233,9 @@ window.Community = (function () {
       var counts = window.Ports.countsFromPorts(d.ports);
       var row = ce("div", "cdev-ports");
       window.Ports.TYPES.forEach(function (t) {
-        if (counts[t.key]) row.appendChild(window.Ports.chip(t.key, t.abbr + "×" + counts[t.key]));
+        var c = counts[t.key];
+        var n = c ? (c.in || 0) + (c.out || 0) : 0;
+        if (n) row.appendChild(window.Ports.chip(t.key, t.abbr + "×" + n));
       });
       info.appendChild(row);
     }
