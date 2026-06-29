@@ -181,7 +181,7 @@ window.Exporter = (function () {
           ";color:" +
           textOn(color) +
           "'>" +
-          faceHTML(d, side, s.rack.simpleMode) +
+          faceHTML(d, side, true) +
           "</div>"
         );
       })

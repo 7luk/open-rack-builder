@@ -138,15 +138,10 @@ window.Rack = (function () {
   function buildDeviceFace(d, s, side) {
     var el = deviceShell(d, s);
     el.classList.add("face");
-    var simple = !!s.rack.simpleMode;
-    if (!simple && Faceplates.hasImage(d, side)) {
-      el.classList.add("has-image");
-    } else {
-      // placeholder reads on the device colour
-      el.style.background = d.color;
-      el.style.color = textOn(d.color);
-    }
-    el.appendChild(Faceplates.render(d, side, simple)); // listeners live on el
+    // simple plates only for now — generic placeholder reads on the device colour
+    el.style.background = d.color;
+    el.style.color = textOn(d.color);
+    el.appendChild(Faceplates.render(d, side, true)); // listeners live on el
     return el;
   }
 
