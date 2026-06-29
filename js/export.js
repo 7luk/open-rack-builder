@@ -273,66 +273,137 @@ window.Exporter = (function () {
     );
   }
 
-  /* ---------- Page 3: signal topology (blueprint) ---------- */
+  /* ---------- Page 3: signal topology (blueprint) ----------
+     Laid out exactly as arranged in the app (custom node positions + cables),
+     computed analytically since there's no live DOM to measure. */
+  var T_NODE_W = 188,
+    T_HEAD_H = 38,
+    T_ROW_H = 22,
+    T_PAD = 6;
+
   function pageTopology(s) {
+    var n = s.cables ? s.cables.length : 0;
     return (
       "<section class='page page-break blueprint'>" +
-      "<header><h1>" +
-      esc(s.projectName) +
-      "</h1><div class='meta'>Signal topology</div></header>" +
-      "<div class='topo-grid'>" +
-      topoNodes(s) +
-      "</div>" +
+      "<header><h1>" + esc(s.projectName) + "</h1>" +
+      "<div class='meta'>Signal topology · " + n + " cable" + (n === 1 ? "" : "s") + "</div></header>" +
+      topoCanvas(s) +
       "<footer>Open Rack Builder — page 3 of 3 · topology</footer>" +
       "</section>"
     );
   }
 
-  function topoNodes(s) {
-    if (!s.devices.length) {
-      return "<div class='bp-empty'>No devices placed.</div>";
-    }
-    return s.devices
+  function topoNodeHeight(nPorts) {
+    return T_HEAD_H + T_PAD * 2 + nPorts * T_ROW_H;
+  }
+
+  function topoCanvas(s) {
+    if (!s.devices.length) return "<div class='bp-empty'>No devices placed.</div>";
+
+    // 1) lay out nodes: custom topoX/topoY, else a default stacked column
+    var nodes = [],
+      defX = 48,
+      cursorY = 48,
+      maxX = 0,
+      maxY = 0;
+    s.devices
       .slice()
       .sort(function (a, b) { return a.slot - b.slot; })
-      .map(function (d) {
+      .forEach(function (d) {
         var ports = pdfPorts(d);
-        var rows = ports.list
+        var h = topoNodeHeight(ports.list.length);
+        var placed = typeof d.topoX === "number" && typeof d.topoY === "number";
+        var x = placed ? d.topoX : defX;
+        var y = placed ? d.topoY : cursorY;
+        if (!placed) cursorY += h + 26;
+        nodes.push({ d: d, ports: ports, x: x, y: y });
+        maxX = Math.max(maxX, x + T_NODE_W);
+        maxY = Math.max(maxY, y + h);
+      });
+
+    // 2) pin coordinates per device/port (left + right)
+    var pin = {};
+    nodes.forEach(function (n) {
+      n.ports.list.forEach(function (p, i) {
+        var cy = n.y + T_HEAD_H + T_PAD + i * T_ROW_H + T_ROW_H / 2;
+        pin[n.d.id + "|" + i] = { l: { x: n.x, y: cy }, r: { x: n.x + T_NODE_W, y: cy } };
+      });
+    });
+
+    // 3) cables: pick the closest pin pair, draw a bezier coloured by type
+    var paths = (s.cables || [])
+      .map(function (c) {
+        var A = pin[c.a.dev + "|" + c.a.port],
+          B = pin[c.b.dev + "|" + c.b.port];
+        if (!A || !B) return "";
+        var best = null,
+          bd = Infinity;
+        ["l", "r"].forEach(function (sa) {
+          ["l", "r"].forEach(function (sb) {
+            var dd = (B[sb].x - A[sa].x) * (B[sb].x - A[sa].x) + (B[sb].y - A[sa].y) * (B[sb].y - A[sa].y);
+            if (dd < bd) {
+              bd = dd;
+              best = { ax: A[sa].x, ay: A[sa].y, bx: B[sb].x, by: B[sb].y };
+            }
+          });
+        });
+        var dx = Math.max(30, Math.abs(best.bx - best.ax) * 0.5);
+        var d =
+          "M" + best.ax + "," + best.ay + " C" + (best.ax + dx) + "," + best.ay +
+          " " + (best.bx - dx) + "," + best.by + " " + best.bx + "," + best.by;
+        return "<path d='" + d + "' fill='none' stroke='" + esc(window.Ports.color(c.type)) + "' stroke-width='2.5' stroke-linecap='round'/>";
+      })
+      .join("");
+    var w = maxX + 48,
+      h = maxY + 48;
+    var svg = "<svg class='bp-cables' width='" + w + "' height='" + h + "'>" + paths + "</svg>";
+
+    // 4) nodes
+    var nodesHtml = nodes
+      .map(function (n) {
+        var rows = n.ports.list
           .map(function (p) {
-            return (
-              "<div class='bp-port'><span class='bp-pin'></span>" +
-              "<span class='bp-plabel'>" + esc(p) + "</span>" +
-              "<span class='bp-pin'></span></div>"
-            );
+            var col = esc(window.Ports.color(p.type));
+            var lab = (p.dir === "in" ? "◂ " : "") + p.label + (p.dir === "out" ? " ▸" : "");
+            var dot = "<span class='bp-pin' style='background:" + col + ";border-color:" + col + "'></span>";
+            return "<div class='bp-port'>" + dot + "<span class='bp-plabel'>" + esc(lab) + "</span>" + dot + "</div>";
           })
           .join("");
         return (
-          "<div class='bp-node'><div class='bp-node-head'>" +
-          esc(d.name) +
-          (d.brand ? "<span class='bp-node-brand'>" + esc(d.brand) + "</span>" : "") +
-          "</div><div class='bp-ports" + (ports.generic ? " generic" : "") + "'>" +
-          rows +
-          "</div></div>"
+          "<div class='bp-node' style='left:" + n.x + "px;top:" + n.y + "px;width:" + T_NODE_W + "px'>" +
+          "<div class='bp-node-head'>" + esc(n.d.name) +
+          (n.d.brand ? "<span class='bp-node-brand'>" + esc(n.d.brand) + "</span>" : "") +
+          "</div><div class='bp-ports" + (n.ports.generic ? " generic" : "") + "'>" + rows + "</div></div>"
         );
       })
       .join("");
+
+    return "<div class='topo-canvas' style='width:" + w + "px;height:" + h + "px'>" + svg + nodesHtml + "</div>";
   }
 
-  // mirrors the in-app topology port logic (kept local so the PDF is self-contained)
+  // structured ports for the PDF (mirrors the in-app topology logic)
   function pdfPorts(d) {
-    var raw = (d.rearLabel || "")
-      .split(",")
-      .map(function (x) { return x.trim(); })
-      .filter(Boolean);
-    if (raw.length) return { list: raw, generic: false };
+    if (d.ports && d.ports.length) {
+      return {
+        list: d.ports.map(function (p) { return { type: p.type, dir: p.dir || "io", label: p.label }; }),
+        generic: false,
+      };
+    }
+    var raw = (d.rearLabel || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean);
+    if (raw.length) {
+      return { list: raw.map(function (l) { return { type: "other", dir: "io", label: l }; }), generic: false };
+    }
     var u = d.u || 1;
     var gen =
-      u >= 3
-        ? ["In 1", "In 2", "In 3", "Out 1", "Out 2", "Out 3"]
-        : u === 2
-        ? ["In 1", "In 2", "Out 1", "Out 2"]
-        : ["In", "Out"];
-    return { list: gen, generic: true };
+      u >= 3 ? ["In 1", "In 2", "In 3", "Out 1", "Out 2", "Out 3"]
+      : u === 2 ? ["In 1", "In 2", "Out 1", "Out 2"]
+      : ["In", "Out"];
+    return {
+      list: gen.map(function (l) {
+        return { type: "other", dir: /out/i.test(l) ? "out" : /in/i.test(l) ? "in" : "io", label: l };
+      }),
+      generic: true,
+    };
   }
 
   /* ---------- styles ---------- */
@@ -381,13 +452,16 @@ window.Exporter = (function () {
       ".blueprint h1{color:#1d1d1f;}",
       ".blueprint .meta{color:#86868b;}",
       ".blueprint footer{color:#aeaeb2;}",
-      ".topo-grid{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start;margin-top:16px;}",
-      ".bp-node{min-width:170px;background:#fff;border:1px solid #c8c8d0;border-radius:9px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);}",
-      ".bp-node-head{display:flex;flex-direction:column;gap:1px;padding:7px 12px;border-bottom:1px solid #e3e3e8;font-weight:600;font-size:12px;}",
+      // absolute-positioned canvas matching the app's topology layout
+      ".topo-canvas{position:relative;margin-top:16px;}",
+      ".bp-cables{position:absolute;top:0;left:0;overflow:visible;}",
+      ".bp-node{position:absolute;background:#fff;border:1px solid #c8c8d0;border-radius:9px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);}",
+      // fixed heads/rows so the analytic pin coordinates line up with the cables
+      ".bp-node-head{height:38px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:0 12px;border-bottom:1px solid #e3e3e8;font-weight:600;font-size:12px;}",
       ".bp-node-brand{font-size:9.5px;color:#86868b;font-weight:400;}",
       ".bp-ports{padding:6px 0;}",
-      ".bp-port{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 12px;}",
-      ".bp-plabel{flex:1 1 auto;text-align:center;font-size:10px;color:#3a3a3e;}",
+      ".bp-port{height:22px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 12px;}",
+      ".bp-plabel{flex:1 1 auto;text-align:center;font-size:10px;color:#3a3a3e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}",
       ".bp-ports.generic .bp-plabel{color:#9a9aa0;font-style:italic;}",
       ".bp-pin{flex:0 0 auto;width:8px;height:8px;border-radius:50%;border:1.5px solid #8a8a90;background:#fff;}",
       ".bp-empty{color:#86868b;padding:30px 0;}",
