@@ -176,6 +176,8 @@ window.State = (function () {
       rearLabel: def.rearLabel || "",
       image: imageOrNull(def.image),
       imageRear: imageOrNull(def.imageRear),
+      topoX: null, // custom topology position (null → default stacked layout)
+      topoY: null,
     };
     data.devices.push(d);
     data.selectedId = d.id;
@@ -211,6 +213,14 @@ window.State = (function () {
     var d = byId(id);
     if (!d) return;
     moveDevice(id, d.slot + delta);
+  }
+  /* set a device's free-form position in the topology view */
+  function setTopoPos(id, x, y) {
+    var d = byId(id);
+    if (!d) return;
+    d.topoX = Math.round(x);
+    d.topoY = Math.round(y);
+    notify();
   }
   /* drag-to-move: snap to the nearest free slot at/around preferredTop,
      ignoring the device's own rows so it can slide past its old position */
@@ -333,6 +343,8 @@ window.State = (function () {
               rearLabel: d.rearLabel || "",
               image: imageOrNull(d.image),
               imageRear: imageOrNull(d.imageRear),
+              topoX: numOrNull(d.topoX),
+              topoY: numOrNull(d.topoY),
             };
           })
         : [],
@@ -368,6 +380,9 @@ window.State = (function () {
   function imageOrNull(v) {
     return typeof v === "string" && /^(data:|https?:|blob:)/.test(v) ? v : null;
   }
+  function numOrNull(v) {
+    return typeof v === "number" && isFinite(v) ? v : null;
+  }
 
   return {
     // read
@@ -394,6 +409,7 @@ window.State = (function () {
     updateDevice: updateDevice,
     moveDevice: moveDevice,
     nudge: nudge,
+    setTopoPos: setTopoPos,
     repositionDevice: repositionDevice,
     clearRack: clearRack,
     // selection

@@ -18,6 +18,7 @@ window.Rack = (function () {
   var zoom = 1;
   var panX = 0; // canvas pan offset, screen px
   var panY = 0;
+  var suppressTopoClick = false; // set right after a topo node drag
   var MIN_ZOOM = 0.4;
   var MAX_ZOOM = 3;
 
@@ -315,27 +316,60 @@ window.Rack = (function () {
       return wrap;
     }
 
-    // reading order, top of the rack first
+    // Default layout: a stacked column in reading order (rack-top first),
+    // used until a node is dragged. Dragged nodes carry explicit topoX/topoY
+    // and stay where the user put them. Positions are absolute so paths are
+    // easy to read once spread out.
+    var defX = 48,
+      cursorY = 48,
+      maxX = 0,
+      maxY = 0;
+
     s.devices
       .slice()
       .sort(function (a, b) { return a.slot - b.slot; })
       .forEach(function (d) {
-        wrap.appendChild(buildTopoNode(d, s));
+        var placed = typeof d.topoX === "number" && typeof d.topoY === "number";
+        var pos = placed ? { x: d.topoX, y: d.topoY } : { x: defX, y: cursorY };
+        if (!placed) cursorY += estNodeHeight(d) + 26;
+
+        wrap.appendChild(buildTopoNode(d, s, pos));
+        maxX = Math.max(maxX, pos.x + 210);
+        maxY = Math.max(maxY, pos.y + estNodeHeight(d));
       });
+
+    // size the canvas so the stage can centre / pan around the nodes
+    wrap.style.width = maxX + 48 + "px";
+    wrap.style.height = maxY + 48 + "px";
     return wrap;
   }
 
-  function buildTopoNode(d, s) {
+  // approximate node height (head + port rows) for the default stack layout
+  function estNodeHeight(d) {
+    return 40 + topoPorts(d).list.length * 22 + 14;
+  }
+
+  function buildTopoNode(d, s, pos) {
     var node = document.createElement("div");
     node.className = "topo-node" + (s.selectedId === d.id ? " selected" : "");
     node.dataset.id = d.id;
+    node.style.left = pos.x + "px";
+    node.style.top = pos.y + "px";
     node.addEventListener("click", function (e) {
       e.stopPropagation();
+      if (suppressTopoClick) {
+        suppressTopoClick = false;
+        return;
+      }
       State.select(d.id);
     });
 
     var head = document.createElement("div");
     head.className = "topo-head";
+    // drag the head to move the node around the canvas
+    head.addEventListener("mousedown", function (e) {
+      startTopoDrag(e, d, node, pos);
+    });
     var nm = document.createElement("span");
     nm.className = "topo-name";
     nm.textContent = d.name;
@@ -364,6 +398,43 @@ window.Rack = (function () {
     });
     node.appendChild(list);
     return node;
+  }
+
+  // drag a topology node by its head; deltas are divided by the zoom scale so
+  // the node tracks the cursor. Commits to state on release (which persists
+  // and re-renders). A tiny move threshold keeps a plain click = select.
+  function startTopoDrag(e, d, node, origPos) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    var sx = e.clientX,
+      sy = e.clientY,
+      moved = false;
+
+    function mm(ev) {
+      var dx = (ev.clientX - sx) / zoom;
+      var dy = (ev.clientY - sy) / zoom;
+      if (!moved && Math.abs(dx) + Math.abs(dy) > 3) {
+        moved = true;
+        node.classList.add("dragging");
+      }
+      if (moved) {
+        node.style.left = origPos.x + dx + "px";
+        node.style.top = origPos.y + dy + "px";
+      }
+    }
+    function mu(ev) {
+      document.removeEventListener("mousemove", mm);
+      document.removeEventListener("mouseup", mu);
+      if (!moved) return;
+      node.classList.remove("dragging");
+      var dx = (ev.clientX - sx) / zoom;
+      var dy = (ev.clientY - sy) / zoom;
+      suppressTopoClick = true; // don't let the trailing click change selection
+      setTimeout(function () { suppressTopoClick = false; }, 0);
+      State.setTopoPos(d.id, origPos.x + dx, origPos.y + dy);
+    }
+    document.addEventListener("mousemove", mm);
+    document.addEventListener("mouseup", mu);
   }
 
   // a single connection pin; the cable layer (later) will anchor to these
