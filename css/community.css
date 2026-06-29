@@ -182,6 +182,12 @@
   color: var(--text-muted);
   margin-top: 4px;
 }
+.cdev-ports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 6px;
+}
 .cdev-by {
   font-size: 11px;
   color: var(--text-muted);

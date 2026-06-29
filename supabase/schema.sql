@@ -14,6 +14,7 @@ create table if not exists public.devices (
   color       text default '#2a2a2e',
   depth       int  default 250          check (depth between 20 and 2000),
   rear_label  text default '',
+  ports       jsonb not null default '[]'::jsonb,  -- [{type,label}] connectors
   dev         boolean not null default false  -- set server-side (see trigger)
 );
 
@@ -48,6 +49,11 @@ create policy "devices_delete_own"
   on public.devices for delete
   to authenticated
   using (user_id = auth.uid());
+
+-- Structured connectors: each device carries a [{type,label}] ports list so
+-- published devices keep their typed connectors (drawn on the plate + topology
+-- and used for type-safe cable routing). Safe to run on an existing table.
+alter table public.devices add column if not exists ports jsonb not null default '[]'::jsonb;
 
 -- "DEV" badge: mark devices published by the project developer. The flag is
 -- set SERVER-SIDE from the signed-in user's verified email, so it can't be

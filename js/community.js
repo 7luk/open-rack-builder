@@ -63,7 +63,7 @@ window.Community = (function () {
     if (!sb) return Promise.resolve([]);
     return queryDevices(true)
       .then(function (res) {
-        // tolerate the `dev` column not existing yet (older schema)
+        // tolerate the extended columns (dev, ports) not existing yet
         return res.error ? queryDevices(false) : res;
       })
       .then(function (res) {
@@ -81,6 +81,7 @@ window.Community = (function () {
             color: row.color,
             depth: row.depth,
             rearLabel: row.rear_label || "",
+            ports: Array.isArray(row.ports) ? row.ports : [],
             author: row.author_name || "",
             fromDev: !!row.dev,
           };
@@ -89,9 +90,9 @@ window.Community = (function () {
         return catalog;
       });
   }
-  function queryDevices(withDev) {
+  function queryDevices(extended) {
     var cols = "id,name,brand,cat,u,color,depth,rear_label,author_name";
-    if (withDev) cols += ",dev";
+    if (extended) cols += ",dev,ports";
     return sb.from("devices").select(cols).order("created_at", { ascending: false });
   }
   function refresh() {
@@ -227,6 +228,16 @@ window.Community = (function () {
     info.appendChild(ce("div", "cdev-brand", d.brand || "—"));
     info.appendChild(ce("div", "cdev-spec", d.u + "U · " + (d.cat || "Community")));
 
+    // connector summary, colour-coded by type (e.g. XLR×4 JACK×2)
+    if (d.ports && d.ports.length) {
+      var counts = window.Ports.countsFromPorts(d.ports);
+      var row = ce("div", "cdev-ports");
+      window.Ports.TYPES.forEach(function (t) {
+        if (counts[t.key]) row.appendChild(window.Ports.chip(t.key, t.abbr + "×" + counts[t.key]));
+      });
+      info.appendChild(row);
+    }
+
     var by = ce("div", "cdev-by");
     by.appendChild(document.createTextNode(d.author ? "by " + d.author : "by anonymous"));
     if (d.fromDev) {
@@ -305,6 +316,7 @@ window.Community = (function () {
       color: device.color || "#2a2a2e",
       depth: clampInt(device.depth, 20, 2000, 250),
       rear_label: device.rearLabel || "",
+      ports: Array.isArray(device.ports) ? device.ports : [],
       author_name: u ? u.name : null,
     };
 
@@ -321,23 +333,40 @@ window.Community = (function () {
         );
         return;
       }
-      sb.from("devices")
-        .insert(row)
-        .then(function (res) {
-          if (res.error) {
-            // 23505 = unique violation: someone published it first
-            if (res.error.code === "23505") {
-              App.flash(label + " is already in the community library");
-            } else {
-              console.warn("publish failed", res.error);
-              App.flash("Publish failed — try again");
-            }
-            return;
+      insertRow(row).then(function (res) {
+        if (res.error) {
+          // 23505 = unique violation: someone published it first
+          if (res.error.code === "23505") {
+            App.flash(label + " is already in the community library");
+          } else {
+            console.warn("publish failed", res.error);
+            App.flash("Publish failed — try again");
           }
-          App.flash("Published to the community library");
-          loadDevices();
-        });
+          return;
+        }
+        App.flash("Published to the community library");
+        loadDevices();
+      });
     });
+  }
+
+  // insert a device row; if the `ports` column isn't migrated yet, retry
+  // without it so publishing still works on an older schema
+  function insertRow(row) {
+    return sb
+      .from("devices")
+      .insert(row)
+      .then(function (res) {
+        if (res.error && row.ports !== undefined && missingColumn(res.error)) {
+          var r2 = {};
+          for (var k in row) if (k !== "ports" && row.hasOwnProperty(k)) r2[k] = row[k];
+          return sb.from("devices").insert(r2);
+        }
+        return res;
+      });
+  }
+  function missingColumn(err) {
+    return err && (err.code === "42703" || err.code === "PGRST204");
   }
 
   // normalised device identity: brand + name, collapsed/trimmed/lowercased.
