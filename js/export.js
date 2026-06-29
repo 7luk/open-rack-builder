@@ -303,9 +303,7 @@ window.Exporter = (function () {
     // 1) lay out nodes: custom topoX/topoY, else a default stacked column
     var nodes = [],
       defX = 48,
-      cursorY = 48,
-      maxX = 0,
-      maxY = 0;
+      cursorY = 48;
     s.devices
       .slice()
       .sort(function (a, b) { return a.slot - b.slot; })
@@ -316,10 +314,21 @@ window.Exporter = (function () {
         var x = placed ? d.topoX : defX;
         var y = placed ? d.topoY : cursorY;
         if (!placed) cursorY += h + 26;
-        nodes.push({ d: d, ports: ports, x: x, y: y });
-        maxX = Math.max(maxX, x + T_NODE_W);
-        maxY = Math.max(maxY, y + h);
+        nodes.push({ d: d, ports: ports, x: x, y: y, h: h });
       });
+
+    // the workspace is unbounded (nodes can sit anywhere, even negative), so
+    // normalise the bounding box to the origin and scale to fit the page
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    nodes.forEach(function (n) {
+      minX = Math.min(minX, n.x);
+      minY = Math.min(minY, n.y);
+      maxX = Math.max(maxX, n.x + T_NODE_W);
+      maxY = Math.max(maxY, n.y + n.h);
+    });
+    var PAD = 14;
+    var ox = PAD - minX, oy = PAD - minY;
+    nodes.forEach(function (n) { n.x += ox; n.y += oy; });
 
     // 2) pin coordinates per device/port (left + right)
     var pin = {};
@@ -354,8 +363,12 @@ window.Exporter = (function () {
         return "<path d='" + d + "' fill='none' stroke='" + esc(window.Ports.color(c.type)) + "' stroke-width='2.5' stroke-linecap='round'/>";
       })
       .join("");
-    var w = maxX + 48,
-      h = maxY + 48;
+    // bounded canvas size, then scale the whole thing to fit the printable area
+    var w = maxX - minX + PAD * 2,
+      h = maxY - minY + PAD * 2;
+    var MAXW = 700,
+      MAXH = 900;
+    var scale = Math.min(1, MAXW / w, MAXH / h);
     var svg = "<svg class='bp-cables' width='" + w + "' height='" + h + "'>" + paths + "</svg>";
 
     // 4) nodes
@@ -378,7 +391,14 @@ window.Exporter = (function () {
       })
       .join("");
 
-    return "<div class='topo-canvas' style='width:" + w + "px;height:" + h + "px'>" + svg + nodesHtml + "</div>";
+    // outer wrapper reserves the SCALED footprint; inner holds the full-size
+    // content and is visually scaled to fit the page
+    return (
+      "<div class='topo-fit' style='width:" + w * scale + "px;height:" + h * scale + "px'>" +
+      "<div class='topo-canvas' style='width:" + w + "px;height:" + h + "px;transform:scale(" + scale + ");transform-origin:top left'>" +
+      svg + nodesHtml +
+      "</div></div>"
+    );
   }
 
   // structured ports for the PDF (mirrors the in-app topology logic)
@@ -452,8 +472,10 @@ window.Exporter = (function () {
       ".blueprint h1{color:#1d1d1f;}",
       ".blueprint .meta{color:#86868b;}",
       ".blueprint footer{color:#aeaeb2;}",
-      // absolute-positioned canvas matching the app's topology layout
-      ".topo-canvas{position:relative;margin-top:16px;}",
+      // absolute-positioned canvas matching the app's topology layout, scaled
+      // to fit the page inside .topo-fit
+      ".topo-fit{position:relative;margin:16px auto 0;}",
+      ".topo-canvas{position:absolute;top:0;left:0;}",
       ".bp-cables{position:absolute;top:0;left:0;overflow:visible;}",
       ".bp-node{position:absolute;background:#fff;border:1px solid #c8c8d0;border-radius:9px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);}",
       // fixed heads/rows so the analytic pin coordinates line up with the cables
