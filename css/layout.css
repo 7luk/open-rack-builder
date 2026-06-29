@@ -21,11 +21,30 @@
 .header-left {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
 }
 
 .header-center {
   display: flex;
   justify-content: center;
+  align-items: center;
+}
+
+/* clickable app title → GitHub repo */
+.app-title {
+  font-weight: var(--fw-semibold, 600);
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  text-decoration: none;
+  padding: 3px 8px;
+  border-radius: var(--radius-control);
+  white-space: nowrap;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.app-title:hover {
+  color: var(--accent);
+  background: var(--surface-2);
 }
 
 .project-name {
@@ -35,7 +54,7 @@
   border-radius: var(--radius-control);
   border: 1px solid transparent;
   max-width: 320px;
-  text-align: center;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
