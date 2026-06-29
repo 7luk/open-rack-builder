@@ -155,10 +155,22 @@ window.Rack = (function () {
   function buildDeviceFace(d, s, side) {
     var el = deviceShell(d, s);
     el.classList.add("face");
-    // simple plates only for now — generic placeholder reads on the device colour
-    el.style.background = d.color;
-    el.style.color = textOn(d.color);
-    el.appendChild(Faceplates.render(d, side, true)); // listeners live on el
+    // advanced = the device's framed image, shown when Simple mode is off;
+    // otherwise the generic placeholder plate, which reads on the device colour
+    var advanced = !s.rack.simpleMode && Faceplates.hasImage(d, side);
+    el.classList.toggle("advanced", advanced);
+    if (!advanced) {
+      el.style.background = d.color;
+      el.style.color = textOn(d.color);
+    }
+    el.appendChild(Faceplates.render(d, side, s.rack.simpleMode)); // listeners live on el
+    if (advanced) {
+      // hovering an image faceplate blurs it and reveals the device name on top
+      var ov = document.createElement("div");
+      ov.className = "device-hover-name";
+      ov.textContent = d.name || "Device";
+      el.appendChild(ov);
+    }
     return el;
   }
 

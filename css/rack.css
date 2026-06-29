@@ -262,6 +262,34 @@
   z-index: 4;
 }
 
+/* advanced (image) faceplate: hovering blurs it and reveals the device name,
+   so it stays identifiable even when the plate is a detailed picture */
+.device.advanced .fp-img {
+  transition: filter 0.15s ease;
+}
+.device-hover-name {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  font-weight: var(--fw-medium);
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.72);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.device.advanced:hover .fp-img {
+  filter: blur(3px) brightness(0.62);
+}
+.device.advanced:hover .device-hover-name {
+  opacity: 1;
+}
+
 /* the faceplate (framed image or placeholder) fills the device edge to edge */
 .device.face {
   padding: 0;
