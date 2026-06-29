@@ -74,6 +74,22 @@
   border: 1px solid var(--border);
 }
 
+/* Front & rear: the casters point toward / away from the viewer, so we see
+   them edge-on (a slim tread) instead of the round side face. Only the side
+   view (.rack-wheels.side) keeps the round wheel above. */
+.rack-wheels:not(.side) .caster-fork {
+  width: 13px;
+}
+.rack-wheels:not(.side) .caster-wheel {
+  width: 11px;
+  height: 26px;
+  border-radius: 5px;
+}
+.rack-wheels:not(.side) .caster-wheel::after {
+  inset: 4px 2px;
+  border-radius: 3px;
+}
+
 /* ---------- Rack plate ---------- */
 .rack-plate {
   position: relative;
