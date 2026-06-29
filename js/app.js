@@ -40,7 +40,9 @@ window.App = (function () {
       State.notify(); // first paint with defaults
     }
 
-    loadCommunity(); // merge the shared community device registry
+    // community: live Supabase registry if configured, else static fallback
+    Community.init();
+    if (!Community.enabled()) loadCommunity();
   }
 
   // fetch the community device registry and merge it into the library.
@@ -102,6 +104,11 @@ window.App = (function () {
     Library.render(refs.libraryList, searchQuery);
     Rack.render();
     Props.render();
+  }
+
+  // re-render just the library list (used when community devices arrive async)
+  function refreshLibrary() {
+    Library.render(refs.libraryList, searchQuery);
   }
 
   /* ---------- header ---------- */
@@ -227,6 +234,21 @@ window.App = (function () {
       State.setRackSetting("size", 42);
     },
     shortcuts: openShortcutsModal,
+    "community-auth": function () {
+      Community.toggleAuth();
+    },
+    "community-publish": function () {
+      var d = State.getSelected();
+      if (!d) {
+        flash("Select a device to publish");
+        return;
+      }
+      Community.publish(d);
+    },
+    "community-refresh": function () {
+      Community.refresh();
+      flash("Refreshing community library");
+    },
   };
   function runAction(name) {
     var fn = actions[name];
@@ -474,6 +496,12 @@ window.App = (function () {
      Images are deliberately excluded — only metadata is shared publicly, so a
      user's locally-framed illustrations never end up in the public repo. */
   function contributeDevice(device) {
+    // live backend on? publish straight to the shared library (prompts a
+    // Google sign-in if needed). Otherwise fall back to the GitHub flow.
+    if (Community.enabled()) {
+      Community.publish(device);
+      return;
+    }
     var data = Persist.deviceJSON(device, false);
     var json = JSON.stringify(data, null, 2);
     var title = "Device: " + (data.brand ? data.brand + " " : "") + data.name;
@@ -710,6 +738,7 @@ window.App = (function () {
     },
     contributeDevice: contributeDevice,
     flash: flash,
+    refreshLibrary: refreshLibrary,
   };
 })();
 

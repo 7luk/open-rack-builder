@@ -4,10 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Open Rack Builder</title>
-  <link rel="stylesheet" href="css/reset.css?v=12" />
-  <link rel="stylesheet" href="css/layout.css?v=12" />
-  <link rel="stylesheet" href="css/rack.css?v=12" />
-  <link rel="stylesheet" href="css/sidebar.css?v=12" />
+  <link rel="stylesheet" href="css/reset.css?v=13" />
+  <link rel="stylesheet" href="css/layout.css?v=13" />
+  <link rel="stylesheet" href="css/rack.css?v=13" />
+  <link rel="stylesheet" href="css/sidebar.css?v=13" />
+  <link rel="stylesheet" href="css/community.css?v=13" />
 </head>
 <body>
   <div class="app">
@@ -90,6 +91,16 @@
           <button data-action="export-json">Project file (.json)…</button>
         </div>
       </div>
+      <div class="menu" data-menu id="community-menu" hidden>
+        <button class="menu-label">Community</button>
+        <div class="menu-dropdown">
+          <div class="menu-status" id="community-status">Browsing as a guest</div>
+          <button data-action="community-auth">Sign in with Google</button>
+          <div class="menu-sep"></div>
+          <button data-action="community-publish">Publish selected device…</button>
+          <button data-action="community-refresh">Refresh library</button>
+        </div>
+      </div>
       <div class="menu" data-menu>
         <button class="menu-label">Help</button>
         <div class="menu-dropdown">
@@ -138,13 +149,16 @@
   <input type="file" id="device-input" accept="application/json,.json" hidden />
 
   <!-- Scripts: load order matters (no modules, file:// friendly) -->
-  <script src="js/state.js?v=12"></script>
-  <script src="js/faceplates.js?v=12"></script>
-  <script src="js/library.js?v=12"></script>
-  <script src="js/rack.js?v=12"></script>
-  <script src="js/props.js?v=12"></script>
-  <script src="js/persist.js?v=12"></script>
-  <script src="js/export.js?v=12"></script>
-  <script src="js/app.js?v=12"></script>
+  <script src="js/config.js?v=13"></script>
+  <script src="js/state.js?v=13"></script>
+  <script src="js/faceplates.js?v=13"></script>
+  <script src="js/library.js?v=13"></script>
+  <script src="js/rack.js?v=13"></script>
+  <script src="js/props.js?v=13"></script>
+  <script src="js/persist.js?v=13"></script>
+  <script src="js/export.js?v=13"></script>
+  <script src="js/supabase.js?v=13"></script>
+  <script src="js/community.js?v=13"></script>
+  <script src="js/app.js?v=13"></script>
 </body>
 </html>

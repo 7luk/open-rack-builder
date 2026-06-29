@@ -1,0 +1,27 @@
+/* community.css — small bits of chrome for the optional community menu.
+ * Loaded always; only matters when the Community menu is visible. */
+
+/* a muted, non-interactive caption at the top of the Community dropdown */
+.menu-status {
+  padding: 5px 10px 7px;
+  margin-bottom: 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+/* a small green dot on the menu label once signed in */
+#community-menu.signed-in > .menu-label::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #38a169;
+  vertical-align: middle;
+}
