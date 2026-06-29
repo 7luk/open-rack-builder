@@ -164,5 +164,12 @@
   <script src="js/supabase.js?v=33"></script>
   <script src="js/community.js?v=33"></script>
   <script src="js/app.js?v=33"></script>
+  <script>document.addEventListener("DOMContentLoaded",function(){setTimeout(function(){
+    State.addDevice({name:"Stagebox",brand:"Midas",u:3,ports:[
+      {type:"xlr",dir:"in",side:"rear",label:"Mic 1"},{type:"xlr",dir:"in",side:"rear",label:"Mic 2"},
+      {type:"jack",dir:"out",side:"front",label:"Phones"},{type:"ethernet",dir:"out",side:"rear",label:"Dante A"}
+    ]},1);
+    setTimeout(function(){var su=document.querySelector(".props-adv-summary"); if(su) su.click(); setTimeout(function(){var pd=document.getElementById("device-props"); if(pd) pd.scrollTop=pd.scrollHeight;},60);},130);
+  },70);});</script>
 </body>
 </html>

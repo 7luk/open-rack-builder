@@ -388,6 +388,23 @@
   color: #fff;
   white-space: nowrap;
 }
+/* a drawn connector + its label, stacked, on the 2D plate */
+.fp-port-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  max-width: 70px;
+}
+.fp-port-label {
+  font-size: 7px;
+  line-height: 1.25;
+  max-width: 70px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
 /* faint corner mounting screws on the blank panel */
 .fp-screws {
   position: absolute;
@@ -742,6 +759,18 @@
 .topo-ports.generic .topo-port-label {
   color: var(--text-muted);
   font-style: italic; /* generic placeholder ports until rear ports are set */
+}
+/* small badge flagging a front-mounted port in the topology */
+.topo-side {
+  margin-left: 5px;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 3px;
+  vertical-align: middle;
 }
 .topo-pin {
   flex: 0 0 auto;

@@ -394,6 +394,65 @@
   color: var(--text-primary);
 }
 
+/* per-port list: name + front/rear + remove */
+.ports-list-h {
+  margin-top: 9px;
+  margin-bottom: 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.ports-prow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.ports-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 6px;
+  font-size: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-0);
+  color: var(--text-primary);
+}
+.ports-side {
+  flex: 0 0 auto;
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.ports-side-btn {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface-0);
+}
+.ports-side-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.ports-x {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: transparent;
+  border-radius: 5px;
+}
+.ports-x:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
 /* drawn connector glyphs on the rear faceplate — shape/size per type */
 .port-glyph {
   display: inline-block;

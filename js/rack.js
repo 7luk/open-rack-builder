@@ -315,7 +315,7 @@ window.Rack = (function () {
     if (d.ports && d.ports.length) {
       return {
         list: d.ports.map(function (p) {
-          return { label: p.label, type: p.type, dir: p.dir || "io" };
+          return { label: p.label, type: p.type, dir: p.dir || "io", side: p.side || "rear" };
         }),
         generic: false,
       };
@@ -434,6 +434,13 @@ window.Rack = (function () {
       lbl.className = "topo-port-label";
       // direction cue: ◂ for inputs, ▸ for outputs
       lbl.textContent = (p.dir === "in" ? "◂ " : "") + p.label + (p.dir === "out" ? " ▸" : "");
+      // flag front-mounted ports (rear is the default/common case)
+      if (p.side === "front") {
+        var sb = document.createElement("span");
+        sb.className = "topo-side";
+        sb.textContent = "front";
+        lbl.appendChild(sb);
+      }
       row.appendChild(lbl);
       row.appendChild(pin(d.id, i, "r", p.type, p.dir));
       list.appendChild(row);

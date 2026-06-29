@@ -108,57 +108,135 @@ window.Ports = (function () {
 
   /* per-type In/Out count editor. `initial` is a counts object; `onChange`
      gets a fresh counts object on every change. Returns the editor element. */
-  function editor(initial, onChange) {
-    var counts = {};
-    TYPES.forEach(function (t) {
-      var c = (initial && initial[t.key]) || {};
-      counts[t.key] = { in: clampN(c.in), out: clampN(c.out) };
+  function editor(initialPorts, onChange) {
+    // work on a live ports array so per-port names + sides survive edits
+    var ports = (initialPorts || []).map(function (p) {
+      p = p || {};
+      return {
+        id: typeof p.id === "string" && p.id ? p.id : puid(),
+        type: byKey[p.type] ? p.type : "other",
+        dir: p.dir === "in" || p.dir === "out" ? p.dir : "out",
+        side: p.side === "front" ? "front" : "rear",
+        label: typeof p.label === "string" ? p.label : "",
+      };
     });
 
     var wrap = ce("div", "ports-editor");
-    var head = ce("div", "ports-row ports-head");
-    head.appendChild(ce("span", "ports-row-label", "Connector"));
-    head.appendChild(ce("span", "ports-col-h", "In"));
-    head.appendChild(ce("span", "ports-col-h", "Out"));
-    wrap.appendChild(head);
+    function emit() {
+      if (onChange) onChange(ports.map(function (p) {
+        return { id: p.id, type: p.type, dir: p.dir, side: p.side, label: p.label };
+      }));
+    }
+    function countOf(t, d) {
+      return ports.filter(function (p) { return p.type === t && p.dir === d; }).length;
+    }
+    function addPort(t, d) {
+      var n = countOf(t, d) + 1;
+      ports.push({ id: puid(), type: t, dir: d, side: "rear", label: def(t).abbr + " " + (d === "in" ? "In" : "Out") + " " + n });
+    }
+    function removeLast(t, d) {
+      for (var i = ports.length - 1; i >= 0; i--) {
+        if (ports[i].type === t && ports[i].dir === d) { ports.splice(i, 1); return; }
+      }
+    }
 
-    TYPES.forEach(function (t) {
-      var row = ce("div", "ports-row");
-      var lab = ce("span", "ports-row-label");
-      var dot = ce("span", "ports-dot");
-      dot.style.background = t.color;
-      lab.appendChild(dot);
-      lab.appendChild(document.createTextNode(t.short || t.label));
-      lab.title = t.label;
-      row.appendChild(lab);
-      row.appendChild(stepper(t.key, "in"));
-      row.appendChild(stepper(t.key, "out"));
-      wrap.appendChild(row);
-    });
+    function rerender() {
+      wrap.innerHTML = "";
+
+      // ── add section: per-type In/Out steppers ──
+      var head = ce("div", "ports-row ports-head");
+      head.appendChild(ce("span", "ports-row-label", "Add connectors"));
+      head.appendChild(ce("span", "ports-col-h", "In"));
+      head.appendChild(ce("span", "ports-col-h", "Out"));
+      wrap.appendChild(head);
+      TYPES.forEach(function (t) {
+        var row = ce("div", "ports-row");
+        var lab = ce("span", "ports-row-label");
+        var dot = ce("span", "ports-dot");
+        dot.style.background = t.color;
+        lab.appendChild(dot);
+        lab.appendChild(document.createTextNode(t.short || t.label));
+        lab.title = t.label;
+        row.appendChild(lab);
+        row.appendChild(stepper(t.key, "in"));
+        row.appendChild(stepper(t.key, "out"));
+        wrap.appendChild(row);
+      });
+
+      // ── per-port list: name + front/rear + remove ──
+      if (ports.length) {
+        wrap.appendChild(ce("div", "ports-list-h", "Each port — name & location"));
+        ports.forEach(function (p) {
+          var row = ce("div", "ports-prow");
+          var dot = ce("span", "ports-dot");
+          dot.style.background = def(p.type).color;
+          dot.title = def(p.type).label + (p.dir === "in" ? " · In" : " · Out");
+          row.appendChild(dot);
+
+          var inp = document.createElement("input");
+          inp.type = "text";
+          inp.className = "ports-name";
+          inp.value = p.label;
+          inp.placeholder = def(p.type).abbr + (p.dir === "in" ? " In" : " Out");
+          inp.addEventListener("change", function () {
+            p.label = inp.value;
+            emit();
+          });
+          row.appendChild(inp);
+
+          var seg = ce("div", "ports-side");
+          var f = sideBtn("F", p.side === "front", "Front");
+          var r = sideBtn("R", p.side !== "front", "Rear");
+          f.addEventListener("click", function () { p.side = "front"; emit(); rerender(); });
+          r.addEventListener("click", function () { p.side = "rear"; emit(); rerender(); });
+          seg.appendChild(f);
+          seg.appendChild(r);
+          row.appendChild(seg);
+
+          var x = ce("button", "ports-x", "×");
+          x.type = "button";
+          x.title = "Remove this port";
+          x.addEventListener("click", function () {
+            ports = ports.filter(function (q) { return q.id !== p.id; });
+            emit();
+            rerender();
+          });
+          row.appendChild(x);
+          wrap.appendChild(row);
+        });
+      }
+    }
 
     function stepper(key, dir) {
       var s = ce("div", "ports-stepper");
       var minus = stepBtn("−");
-      var val = ce("span", "ports-val", String(counts[key][dir]));
+      var val = ce("span", "ports-val", String(countOf(key, dir)));
       var plus = stepBtn("+");
-      function set(n) {
-        n = Math.max(0, Math.min(64, n));
-        counts[key][dir] = n;
-        val.textContent = String(n);
-        if (onChange) onChange(copy(counts));
-      }
       minus.addEventListener("click", function () {
-        set(counts[key][dir] - 1);
+        if (countOf(key, dir) > 0) { removeLast(key, dir); emit(); rerender(); }
       });
       plus.addEventListener("click", function () {
-        set(counts[key][dir] + 1);
+        addPort(key, dir); emit(); rerender();
       });
       s.appendChild(minus);
       s.appendChild(val);
       s.appendChild(plus);
       return s;
     }
+    function sideBtn(text, active, title) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "ports-side-btn" + (active ? " active" : "");
+      b.textContent = text;
+      b.title = title;
+      return b;
+    }
+
+    rerender();
     return wrap;
+  }
+  function puid() {
+    return "port-" + Math.random().toString(36).slice(2, 8);
   }
 
   /* ---------- helpers ---------- */

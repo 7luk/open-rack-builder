@@ -623,12 +623,12 @@ window.App = (function () {
 
     // ports (connectors): how many of each type. Drawn on the rear plate and
     // in topology, evenly spaced — and the anchors for future cable routing.
-    var portCounts = {};
+    var portList = [];
     var portsField = elx("div", "modal-field");
     portsField.appendChild(elx("label", null, "Ports (connectors)"));
     portsField.appendChild(
-      Ports.editor({}, function (c) {
-        portCounts = c;
+      Ports.editor([], function (ports) {
+        portList = ports;
       })
     );
     modal.appendChild(portsField);
@@ -691,7 +691,7 @@ window.App = (function () {
         u: parseInt(u.value, 10) || 1,
         depth: parseInt(depth.value, 10) || 250,
         color: chosen.color,
-        ports: Ports.fromCounts(portCounts),
+        ports: portList,
       });
       flash("Added to library");
     });

@@ -52,64 +52,69 @@ window.Faceplates = (function () {
   }
 
   function frontContent(device) {
-    var wrap = document.createElement("div");
-    wrap.className = "fp-blank-label";
-    var name = document.createElement("div");
-    name.className = "fp-blank-name";
-    name.textContent = device.name || "Device";
-    wrap.appendChild(name);
-    if (device.brand) {
-      var brand = document.createElement("div");
-      brand.className = "fp-blank-brand";
-      brand.textContent = device.brand;
-      wrap.appendChild(brand);
-    }
+    var wrap = ce("div", "fp-blank-label");
+    wrap.appendChild(ce("div", "fp-blank-name", device.name || "Device"));
+    if (device.brand) wrap.appendChild(ce("div", "fp-blank-brand", device.brand));
+    var row = portsRow(device, "front"); // front-mounted connectors, if any
+    if (row) wrap.appendChild(row);
     return wrap;
   }
 
   function rearContent(device) {
-    var wrap = document.createElement("div");
-    wrap.className = "fp-blank-label";
-
-    var ports = portList(device);
-    if (ports.length) {
-      // colour-coded connector chips, dispersed evenly and centred by the
-      // flex layout (.fp-ports). These are the same virtual ports used by the
-      // topology view and, later, cable routing.
-      var row = document.createElement("div");
-      row.className = "fp-ports";
-      ports.forEach(function (p, i) {
-        var g = window.Ports.glyph(p.type, p.dir);
-        // tag so the 2D cable layer can anchor to this exact connector
-        if (device && device.id) {
-          g.dataset.dev = device.id;
-          g.dataset.port = i;
-        }
-        row.appendChild(g);
-      });
+    var wrap = ce("div", "fp-blank-label");
+    var row = portsRow(device, "rear");
+    if (row) {
       wrap.appendChild(row);
-    } else {
-      var name = document.createElement("div");
-      name.className = "fp-blank-name";
-      name.textContent = device.name || "Device";
-      wrap.appendChild(name);
-      var hint = document.createElement("div");
-      hint.className = "fp-blank-brand";
-      hint.textContent = "rear";
-      wrap.appendChild(hint);
+      return wrap;
     }
+    // no rear ports → fall back to a labelled blank
+    wrap.appendChild(ce("div", "fp-blank-name", device.name || "Device"));
+    wrap.appendChild(ce("div", "fp-blank-brand", "rear"));
     return wrap;
   }
 
-  // a device's ports: the structured list if present, else the legacy
-  // comma-separated rearLabel parsed as generic "other" ports.
+  // a row of drawn connectors for one side (front/rear), each with its label.
+  // Each glyph is tagged with its device + ORIGINAL port index so the 2D cable
+  // layer can anchor to it. Returns null when the side has no ports.
+  function portsRow(device, side) {
+    var list = portList(device).filter(function (p) {
+      return (p.side || "rear") === side;
+    });
+    if (!list.length) return null;
+    var row = ce("div", "fp-ports");
+    list.forEach(function (p) {
+      var item = ce("div", "fp-port-item");
+      var g = window.Ports.glyph(p.type, p.dir);
+      if (device && device.id) {
+        g.dataset.dev = device.id;
+        g.dataset.port = p.idx;
+      }
+      item.appendChild(g);
+      if (p.label) item.appendChild(ce("div", "fp-port-label", p.label));
+      row.appendChild(item);
+    });
+    return row;
+  }
+
+  // structured ports (carrying their original index) or the legacy rearLabel
   function portList(device) {
-    if (device && device.ports && device.ports.length) return device.ports;
+    if (device && device.ports && device.ports.length) {
+      return device.ports.map(function (p, i) {
+        return { type: p.type, dir: p.dir, side: p.side || "rear", label: p.label, idx: i };
+      });
+    }
     return (device && device.rearLabel ? device.rearLabel : "")
       .split(",")
       .map(function (s) { return s.trim(); })
       .filter(Boolean)
-      .map(function (l) { return { type: "other", dir: "io", label: l }; });
+      .map(function (l, i) { return { type: "other", dir: "io", side: "rear", label: l, idx: i }; });
+  }
+
+  function ce(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
   }
 
   function screwLayer() {

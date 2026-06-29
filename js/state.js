@@ -198,12 +198,15 @@ window.State = (function () {
   function updateDevice(id, patch) {
     var d = byId(id);
     if (!d) return;
+    var oldLen = (d.ports || []).length;
     Object.keys(patch).forEach(function (k) {
       d[k] = patch[k];
     });
-    // editing a device's ports regenerates the list, so its cables (which
-    // reference port positions) are no longer valid — drop them.
-    if (patch.hasOwnProperty("ports")) dropCablesFor(id);
+    // adding/removing ports shifts the indices cables reference, so drop this
+    // device's cables then. Renaming a port or flipping its side keeps them.
+    if (patch.hasOwnProperty("ports") && (d.ports || []).length !== oldLen) {
+      dropCablesFor(id);
+    }
     notify();
   }
   /* move a device to a new top row if it fits */
@@ -497,15 +500,17 @@ window.State = (function () {
   function numOrNull(v) {
     return typeof v === "number" && isFinite(v) ? v : null;
   }
-  // sanitise a structured ports list: [{type, dir, label}] (see ports.js)
+  // sanitise a structured ports list: [{id, type, dir, side, label}] (ports.js)
   function normalizePorts(arr) {
     if (!Array.isArray(arr)) return [];
     return arr.slice(0, 256).map(function (p) {
       p = p || {};
       var dir = p.dir === "in" || p.dir === "out" || p.dir === "io" ? p.dir : "io";
       return {
+        id: typeof p.id === "string" && p.id ? p.id : "port-" + Math.random().toString(36).slice(2, 8),
         type: typeof p.type === "string" ? p.type : "other",
         dir: dir,
+        side: p.side === "front" ? "front" : "rear",
         label: typeof p.label === "string" ? p.label : "",
       };
     });

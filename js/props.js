@@ -169,8 +169,8 @@ window.Props = (function () {
     var portsField = el("div", "field");
     portsField.appendChild(el("label", null, "Ports (connectors)"));
     portsField.appendChild(
-      Ports.editor(portCountsOf(d), function (c) {
-        State.updateDevice(d.id, { ports: Ports.fromCounts(c) });
+      Ports.editor(d.ports || [], function (ports) {
+        State.updateDevice(d.id, { ports: ports });
       })
     );
     adv.appendChild(portsField);
@@ -308,13 +308,6 @@ window.Props = (function () {
   }
   function sameColor(a, b) {
     return (a || "").toLowerCase() === (b || "").toLowerCase();
-  }
-  // seed counts for the ports editor: structured ports if any, else the legacy
-  // comma-separated rearLabel treated as generic "other" ports
-  function portCountsOf(d) {
-    if (d.ports && d.ports.length) return Ports.countsFromPorts(d.ports);
-    var n = (d.rearLabel || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean).length;
-    return n ? { other: { in: 0, out: n } } : {};
   }
 
   return { init: init, render: render, PALETTE: PALETTE };
