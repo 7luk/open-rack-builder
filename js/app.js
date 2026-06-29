@@ -26,6 +26,7 @@ window.App = (function () {
 
     bindHeader();
     bindMenubar();
+    populateMenuKeys(); // append shortcut hints to menu items
     bindLibrary();
     bindGlobalKeys();
     bindFileInput();
@@ -222,6 +223,7 @@ window.App = (function () {
     "size-42": function () {
       State.setRackSetting("size", 42);
     },
+    shortcuts: openShortcutsModal,
   };
   function runAction(name) {
     var fn = actions[name];
@@ -257,26 +259,184 @@ window.App = (function () {
     });
   }
 
-  /* ---------- keyboard ---------- */
+  /* ---------- keyboard shortcuts ---------- */
+  // primary modifier: ⌘ on macOS, Ctrl elsewhere
+  var IS_MAC = /Mac|iPhone|iPad|iPod/.test(navigator.platform || "");
+
+  // single source of truth: chord → menu action. `mod` = ⌘/Ctrl.
+  // `displayOnly` entries appear in menus + the cheat sheet but are dispatched
+  // by the dedicated key logic below (so plain Delete / +/- keep working).
+  var SHORTCUTS = [
+    // File
+    { action: "new-project",   mod: true,              key: "n",         label: "New project" },
+    { action: "save",          mod: true,              key: "s",         label: "Save" },
+    { action: "import",        mod: true,              key: "o",         label: "Open file" },
+    { action: "export-json",   mod: true, shift: true, key: "s",         label: "Save a copy (.json)" },
+    { action: "import-device", mod: true, shift: true, key: "i",         label: "Import device file" },
+    // Edit
+    { action: "remove-selected", displayOnly: true,    key: "Backspace", label: "Remove selected device" },
+    { action: "deselect",        displayOnly: true,    key: "Escape",    label: "Deselect" },
+    { action: "clear-rack",    mod: true, shift: true, key: "Backspace", label: "Clear rack" },
+    // View
+    { action: "view-front",    key: "1", label: "Front view" },
+    { action: "view-rear",     key: "2", label: "Rear view" },
+    { action: "view-side",     key: "3", label: "Side view" },
+    { action: "zoom-reset",    key: "0", label: "Reset zoom" },
+    { action: "toggle-theme",  key: "t", label: "Toggle light / dark" },
+    // Rack
+    { action: "add-u",    displayOnly: true, key: "+", label: "Add 1U" },
+    { action: "remove-u", displayOnly: true, key: "-", label: "Remove 1U" },
+    // Export
+    { action: "export-pdf", mod: true, key: "p", label: "Print / PDF" },
+    // Help
+    { action: "shortcuts", displayOnly: true, key: "?", label: "Keyboard shortcuts" },
+  ];
+
+  // global keys not tied to a menu action (shown in the cheat sheet's "More")
+  var EXTRA_SHORTCUTS = [
+    { keys: "/", label: "Focus device search" },
+    { keys: IS_MAC ? "↑ ↓" : "Up / Down", label: "Move selected device up / down" },
+    { keys: "?", label: "Show this shortcut list" },
+  ];
+
+  function shortcutFor(action) {
+    for (var i = 0; i < SHORTCUTS.length; i++) {
+      if (SHORTCUTS[i].action === action) return SHORTCUTS[i];
+    }
+    return null;
+  }
+  function keyGlyph(k) {
+    if (k === "Backspace") return "⌫";
+    if (k === "Escape") return "esc";
+    if (k === "ArrowUp") return "↑";
+    if (k === "ArrowDown") return "↓";
+    return k.length === 1 ? k.toUpperCase() : k;
+  }
+  function chordText(sc) {
+    var parts = [];
+    if (sc.mod) parts.push(IS_MAC ? "⌘" : "Ctrl");
+    if (sc.shift) parts.push(IS_MAC ? "⇧" : "Shift");
+    parts.push(keyGlyph(sc.key));
+    return parts.join(IS_MAC ? "" : "+");
+  }
+  function chordMatches(e, sc) {
+    if (sc.displayOnly) return false;
+    if (!!sc.mod !== (e.metaKey || e.ctrlKey)) return false;
+    if (!!sc.shift !== e.shiftKey) return false;
+    return e.key.toLowerCase() === sc.key.toLowerCase();
+  }
+
+  // append the chord hint to each menu item that has one
+  function populateMenuKeys() {
+    var btns = refs.menubar.querySelectorAll("button[data-action]");
+    Array.prototype.forEach.call(btns, function (b) {
+      var sc = shortcutFor(b.dataset.action);
+      if (!sc) return;
+      var span = document.createElement("span");
+      span.className = "menu-key";
+      span.textContent = chordText(sc);
+      b.appendChild(span);
+    });
+  }
+
   function bindGlobalKeys() {
     document.addEventListener("keydown", function (e) {
       if (isEditing(e.target)) {
         if (e.key === "Escape") e.target.blur();
         return;
       }
+
+      // while a modal is open, only Escape (to dismiss it) is live
+      if (!refs.modalHost.hasAttribute("hidden")) {
+        if (e.key === "Escape") closeModal();
+        return;
+      }
+
+      // 1) menu-action chords (⌘S, 1/2/3, T, …)
+      for (var i = 0; i < SHORTCUTS.length; i++) {
+        if (chordMatches(e, SHORTCUTS[i])) {
+          e.preventDefault();
+          App_closeMenus && App_closeMenus();
+          runAction(SHORTCUTS[i].action);
+          return;
+        }
+      }
+
+      // 2) keys with custom handling
+      var mod = e.metaKey || e.ctrlKey;
       if (e.key === "Escape") {
         App_closeMenus && App_closeMenus();
         if (!refs.modalHost.hasAttribute("hidden")) closeModal();
         else State.select(null);
+      } else if (e.key === "?") {
+        e.preventDefault();
+        openShortcutsModal();
+      } else if (e.key === "/" && !mod) {
+        e.preventDefault();
+        refs.search.focus();
+        refs.search.select();
+      } else if (!mod && (e.key === "+" || e.key === "=")) {
+        e.preventDefault();
+        State.addU(1);
+      } else if (!mod && (e.key === "-" || e.key === "_")) {
+        e.preventDefault();
+        State.addU(-1);
       } else if (e.key === "Delete" || e.key === "Backspace") {
         var d = State.getSelected();
         if (d) {
           e.preventDefault();
           State.removeDevice(d.id);
         }
+      } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        var sel = State.getSelected();
+        if (sel) {
+          e.preventDefault();
+          State.nudge(sel.id, e.key === "ArrowUp" ? -1 : 1);
+        }
       }
     });
   }
+
+  // cheat sheet listing every shortcut, grouped by menu
+  function openShortcutsModal() {
+    if (refs.modalHost && !refs.modalHost.hasAttribute("hidden")) return;
+    var modal = modalShell("Keyboard shortcuts", null);
+    modal.classList.add("modal-shortcuts");
+
+    var groups = [
+      { title: "File", actions: ["new-project", "save", "import", "export-json", "import-device"] },
+      { title: "Edit", actions: ["remove-selected", "deselect", "clear-rack"] },
+      { title: "View", actions: ["view-front", "view-rear", "view-side", "zoom-reset", "toggle-theme"] },
+      { title: "Rack", actions: ["add-u", "remove-u"] },
+      { title: "Export", actions: ["export-pdf"] },
+    ];
+    groups.forEach(function (g) {
+      modal.appendChild(elx("div", "sc-group", g.title));
+      g.actions.forEach(function (a) {
+        var sc = shortcutFor(a);
+        if (sc) modal.appendChild(scRow(sc.label, chordText(sc)));
+      });
+    });
+    modal.appendChild(elx("div", "sc-group", "More"));
+    EXTRA_SHORTCUTS.forEach(function (x) {
+      modal.appendChild(scRow(x.label, x.keys));
+    });
+
+    var row = elx("div", "modal-actions");
+    var ok = elx("button", "btn btn-primary", "Done");
+    ok.addEventListener("click", closeModal);
+    row.appendChild(ok);
+    modal.appendChild(row);
+    openModal(modal);
+  }
+  function scRow(label, keys) {
+    var r = elx("div", "sc-row");
+    r.appendChild(elx("span", "sc-label", label));
+    var kb = elx("kbd", "sc-keys", keys);
+    r.appendChild(kb);
+    return r;
+  }
+
   function isEditing(node) {
     if (!node) return false;
     var tag = node.tagName;
