@@ -665,12 +665,16 @@ window.Rack = (function () {
       document.removeEventListener("pointermove", mm);
       document.removeEventListener("pointerup", up);
       document.removeEventListener("pointercancel", up);
+      // hit-test the drop BEFORE clearing the highlight — clearing it shrinks
+      // the enlarged compatible pins back down and the point would miss them.
+      var t = document.elementFromPoint(ev.clientX, ev.clientY);
+      var tp = t ? t.closest(".topo-pin") : null;
+      // pins are small; if we just missed, snap to the nearest compatible one
+      if (!tp) tp = nearestPin(ev.clientX, ev.clientY, wrap, type, dir, dev, port);
       highlightCompatible(wrap, type, dir, dev, port, false);
       if (temp.parentNode) temp.parentNode.removeChild(temp);
       suppressTopoClick = true; // swallow the trailing click on the node
       setTimeout(function () { suppressTopoClick = false; }, 0);
-      var t = document.elementFromPoint(ev.clientX, ev.clientY);
-      var tp = t ? t.closest(".topo-pin") : null;
       if (tp) {
         var reason = State.addCable(
           { dev: dev, port: port },
@@ -682,6 +686,26 @@ window.Rack = (function () {
     document.addEventListener("pointermove", mm);
     document.addEventListener("pointerup", up);
     document.addEventListener("pointercancel", up);
+  }
+
+  // nearest compatible, unconnected pin within a forgiving radius of (x,y)
+  function nearestPin(x, y, wrap, type, dir, dev, port) {
+    var best = null,
+      bd = 26 * 26; // ~26px tolerance
+    Array.prototype.forEach.call(wrap.querySelectorAll(".topo-pin"), function (p) {
+      if (!window.Ports.compatible(type, dir, p.dataset.type, p.dataset.dir)) return;
+      if (p.dataset.dev === dev && parseInt(p.dataset.port, 10) === port) return;
+      if (State.portConnected({ dev: p.dataset.dev, port: parseInt(p.dataset.port, 10) })) return;
+      var r = p.getBoundingClientRect();
+      var dx = r.left + r.width / 2 - x,
+        dy = r.top + r.height / 2 - y;
+      var dd = dx * dx + dy * dy;
+      if (dd < bd) {
+        bd = dd;
+        best = p;
+      }
+    });
+    return best;
   }
 
   // glow the pins a new cable could legally land on: matching type, compatible
