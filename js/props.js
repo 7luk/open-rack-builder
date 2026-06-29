@@ -148,6 +148,14 @@ window.Props = (function () {
     imgRow.appendChild(faceBtn("Front…", d.id, "front", !!d.image));
     imgRow.appendChild(faceBtn("Rear…", d.id, "rear", !!d.imageRear));
     imgField.appendChild(imgRow);
+    // generate front & rear from a PDF the user supplies
+    var pdfBtn = el("button", "btn btn-block", "From PDF…");
+    pdfBtn.style.marginTop = "6px";
+    pdfBtn.title = "Crop the front/rear from a PDF (manual / datasheet)";
+    pdfBtn.addEventListener("click", function () {
+      PdfImport.open(d.id);
+    });
+    imgField.appendChild(pdfBtn);
     if (d.image || d.imageRear) {
       var clrRow = el("div", "nudge");
       clrRow.style.marginTop = "6px";

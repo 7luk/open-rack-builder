@@ -915,6 +915,8 @@ window.App = (function () {
     },
     contributeDevice: contributeDevice,
     openFrameModal: openFrameModal,
+    openModal: openModal,
+    closeModal: closeModal,
     flash: flash,
   };
 })();
