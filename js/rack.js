@@ -234,7 +234,8 @@ window.Rack = (function () {
     var el = document.createElement("div");
     el.className = "rack-wheels" + (isSide ? " side" : "");
     el.style.width = widthPx + "px";
-    var n = isSide ? 2 : 4; // 2 visible from the side, 4 across front/rear
+    // 4 casters total, one per corner — any 2D view sees exactly 2 of them
+    var n = 2;
     for (var i = 0; i < n; i++) {
       var c = document.createElement("div");
       c.className = "caster";

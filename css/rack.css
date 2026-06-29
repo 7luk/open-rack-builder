@@ -51,25 +51,25 @@
   align-items: center;
 }
 .caster-fork {
-  width: 11px;
-  height: 6px;
+  width: 16px;
+  height: 9px;
   background: var(--surface-2);
   border: 1px solid var(--border-strong);
   border-top: none;
-  border-radius: 0 0 2px 2px;
+  border-radius: 0 0 3px 3px;
 }
 .caster-wheel {
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  border: 1.5px solid var(--border-strong);
+  border: 2px solid var(--border-strong);
   background: var(--surface-1);
   position: relative;
 }
 .caster-wheel::after {
   content: "";
   position: absolute;
-  inset: 5px;
+  inset: 8px;
   border-radius: 50%;
   border: 1px solid var(--border);
 }
