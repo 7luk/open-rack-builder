@@ -51,25 +51,25 @@
   align-items: center;
 }
 .caster-fork {
-  width: 16px;
-  height: 9px;
+  width: 22px;
+  height: 12px;
   background: var(--surface-2);
   border: 1px solid var(--border-strong);
   border-top: none;
-  border-radius: 0 0 3px 3px;
+  border-radius: 0 0 4px 4px;
 }
 .caster-wheel {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  border: 2px solid var(--border-strong);
+  border: 3px solid var(--border-strong);
   background: var(--surface-1);
   position: relative;
 }
 .caster-wheel::after {
   content: "";
   position: absolute;
-  inset: 8px;
+  inset: 12px;
   border-radius: 50%;
   border: 1px solid var(--border);
 }
@@ -78,16 +78,16 @@
    them edge-on (a slim tread) instead of the round side face. Only the side
    view (.rack-wheels.side) keeps the round wheel above. */
 .rack-wheels:not(.side) .caster-fork {
-  width: 13px;
+  width: 20px;
 }
 .rack-wheels:not(.side) .caster-wheel {
-  width: 11px;
-  height: 26px;
-  border-radius: 5px;
+  width: 22px;
+  height: 38px;
+  border-radius: 7px;
 }
 .rack-wheels:not(.side) .caster-wheel::after {
-  inset: 4px 2px;
-  border-radius: 3px;
+  inset: 6px 4px;
+  border-radius: 5px;
 }
 
 /* ---------- Rack plate ---------- */
