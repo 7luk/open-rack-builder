@@ -529,6 +529,7 @@ window.Rack = (function () {
       pid = e.pointerId;
     var moved = false,
       ghost = null,
+      removeHint = null, // "release to remove" chip when dragging a device out
       hl = [];
 
     function clearHL() {
@@ -576,8 +577,32 @@ window.Rack = (function () {
         ghost.style.top = ev.clientY + "px";
       }
       var slots = slotsAt(ev.clientX, ev.clientY);
-      if (slots) highlight(slots, ev.clientY);
-      else clearHL();
+      if (slots) {
+        setRemoving(false);
+        if (kind === "move") highlight(slots, ev.clientY);
+      } else {
+        clearHL();
+        // dragging a placed device off the rack arms its removal
+        if (kind === "move") setRemoving(true, ev.clientX, ev.clientY);
+      }
+    }
+    // toggle the "release to remove" affordance: dim the device + a red chip
+    function setRemoving(on, x, y) {
+      if (kind !== "move") return;
+      if (on) {
+        if (srcEl) srcEl.classList.add("removing");
+        if (!removeHint) removeHint = makeRemoveHint(x, y);
+        else {
+          removeHint.style.left = x + "px";
+          removeHint.style.top = y + "px";
+        }
+      } else {
+        if (srcEl) srcEl.classList.remove("removing");
+        if (removeHint) {
+          removeHint.remove();
+          removeHint = null;
+        }
+      }
     }
     function done(ev) {
       if (ev.pointerId !== pid) return;
@@ -585,6 +610,7 @@ window.Rack = (function () {
       document.removeEventListener("pointerup", done);
       document.removeEventListener("pointercancel", done);
       if (ghost) ghost.remove();
+      if (removeHint) removeHint.remove();
       var slots = slotsAt(ev.clientX, ev.clientY);
       if (moved && slots) {
         var top = topFrom(slots, ev.clientY);
@@ -594,8 +620,11 @@ window.Rack = (function () {
         // a tap: select the device, or drop a library item in the first free slot
         if (kind === "move") State.select(data.id);
         else if (!State.addDevice(data.def, null)) App.flash("No room in the rack");
-      } else if (kind === "move" && srcEl) {
-        srcEl.classList.remove("dragging"); // dragged outside the rack → leave put
+      } else if (kind === "move") {
+        // dragged a device off the rack → remove it
+        var dev = State.byId(data.id);
+        State.removeDevice(data.id);
+        App.flash("Removed " + (dev ? dev.name : "device"));
       }
       clearHL();
     }
@@ -608,6 +637,15 @@ window.Rack = (function () {
     var g = document.createElement("div");
     g.className = "drag-ghost floating";
     g.textContent = label || "device";
+    g.style.left = x + "px";
+    g.style.top = y + "px";
+    document.body.appendChild(g);
+    return g;
+  }
+  function makeRemoveHint(x, y) {
+    var g = document.createElement("div");
+    g.className = "drag-ghost floating remove";
+    g.textContent = "✕ Release to remove";
     g.style.left = x + "px";
     g.style.top = y + "px";
     document.body.appendChild(g);

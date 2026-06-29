@@ -256,6 +256,12 @@
 .device.dragging {
   opacity: 0.45;
 }
+/* armed for removal: dragged out of the rack into the workspace */
+.device.removing {
+  opacity: 0.3;
+  outline: 2px dashed var(--danger);
+  outline-offset: -2px;
+}
 .device.selected {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
@@ -636,6 +642,12 @@
   background: var(--text-primary);
   color: var(--surface-0);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+/* shown when a placed device is dragged off the rack (it will be removed) */
+.drag-ghost.floating.remove {
+  background: var(--danger);
+  color: #fff;
+  font-weight: 600;
 }
 
 /* ---------- Topology / blueprint view ---------- */
