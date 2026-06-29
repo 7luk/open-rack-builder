@@ -167,6 +167,7 @@ window.State = (function () {
       brand: def.brand || "",
       u: u,
       color: def.color || "#2a2a2e",
+      depth: clamp(Math.round(Number(def.depth) || 250), 20, 2000),
       slot: slot,
       led: true,
       rearLabel: "",
@@ -249,6 +250,7 @@ window.State = (function () {
       brand: def.brand || "",
       u: clamp(Math.round(def.u || 1), 1, 60),
       color: def.color || "#2a2a2e",
+      depth: clamp(Math.round(Number(def.depth) || 250), 20, 2000),
       face: Faceplates.normalizeFace(def.face),
       custom: true,
     });
@@ -288,6 +290,7 @@ window.State = (function () {
               brand: d.brand || "",
               u: clamp(Math.round(Number(d.u) || 1), 1, 60),
               color: d.color || "#2a2a2e",
+              depth: clamp(Math.round(Number(d.depth) || 250), 20, 2000),
               slot: clamp(Math.round(Number(d.slot) || 1), 1, 60),
               led: d.led !== false,
               rearLabel: d.rearLabel || "",
@@ -303,6 +306,7 @@ window.State = (function () {
               brand: c.brand || "",
               u: clamp(Math.round(Number(c.u) || 1), 1, 60),
               color: c.color || "#2a2a2e",
+              depth: clamp(Math.round(Number(c.depth) || 250), 20, 2000),
               face: Faceplates.normalizeFace(c.face),
               custom: true,
             };

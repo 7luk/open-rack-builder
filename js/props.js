@@ -116,6 +116,15 @@ window.Props = (function () {
       })
     );
 
+    // chassis depth (mm) — drives the side / x-ray view
+    deviceEl.appendChild(
+      numberField("Depth (mm)", d.depth, 20, 2000, function (v) {
+        var n = Math.round(Number(v));
+        if (!isFinite(n)) return;
+        State.updateDevice(d.id, { depth: Math.max(20, Math.min(2000, n)) });
+      })
+    );
+
     // faceplate color swatches
     var colorField = el("div", "field");
     colorField.appendChild(el("label", null, "Faceplate"));

@@ -77,6 +77,7 @@ window.Persist = (function () {
       brand: device.brand || "",
       u: device.u || 1,
       color: device.color || "#2a2a2e",
+      depth: device.depth || 250,
       face: {
         spec: Faceplates.resolveSpec(device, "front"),
         rearSpec: Faceplates.resolveSpec(device, "rear"),
@@ -101,6 +102,7 @@ window.Persist = (function () {
             brand: d.brand,
             u: d.u,
             color: d.color,
+            depth: d.depth,
             face: d.face,
           });
           resolve(true);

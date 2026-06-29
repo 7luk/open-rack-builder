@@ -42,7 +42,7 @@ window.Rack = (function () {
     }
     if (s.rack.wheels) {
       var isSide = s.view === "side";
-      unit.appendChild(buildWheels(isSide, isSide ? sideDepthPx(s) : PLATE_PX));
+      unit.appendChild(buildWheels(isSide, isSide ? sidePlatePx(s) : PLATE_PX));
     }
     mount.appendChild(unit);
     applyTransform();
@@ -166,66 +166,104 @@ window.Rack = (function () {
   }
 
   var PLATE_PX = 472; // keep in sync with .rack-plate width
-  function sideDepthPx(s) {
-    return Math.round(Math.min(560, Math.max(170, (s.rack.depth / 600) * 320)));
+
+  /* ---------- side / x-ray view ---------- */
+  function clampN(n, lo, hi) {
+    return Math.min(hi, Math.max(lo, n));
+  }
+  // depth cavity width: ~0.5 px/mm, clamped so shallow & deep racks both read
+  function sideDepthAreaPx(s) {
+    return clampN(Math.round(s.rack.depth * 0.5), 150, 620);
+  }
+  // full side-plate width = cavity + front rail (26) + plate padding (12·2)
+  function sidePlatePx(s) {
+    return sideDepthAreaPx(s) + 50;
   }
 
-  /* ---------- side view ---------- */
   function buildSide(s) {
-    // the side profile's width represents the rack depth
-    var depthPx = sideDepthPx(s);
+    var depthMm = s.rack.depth;
+    var areaPx = sideDepthAreaPx(s);
+    var pxPerMm = areaPx / depthMm;
+    var height = s.rack.size * U_PX;
 
     var profile = document.createElement("div");
     profile.className = "side-profile";
 
+    // depth ruler — "front" sits over the rail, "rear" over the back wall
     var cap = document.createElement("div");
     cap.className = "side-depth";
-    cap.style.width = depthPx + "px";
-    cap.textContent = "↤ depth " + s.rack.depth + " mm ↦";
+    cap.style.width = sidePlatePx(s) + "px";
+    cap.innerHTML =
+      "<span>front</span><span class='side-depth-mm'>" +
+      depthMm +
+      " mm</span><span>rear</span>";
     profile.appendChild(cap);
 
-    var stack = document.createElement("div");
-    stack.className = "side-stack";
-    stack.style.width = depthPx + "px";
+    // the rack box, same plate language as front/rear but seen edge-on
+    var rack = document.createElement("div");
+    rack.className = "side-rack";
+    rack.style.gridTemplateColumns = "26px " + areaPx + "px";
 
-    // map each physical row to the device occupying it (if any)
-    var rowDevice = {};
+    // front mounting rail (reuse the front-view rail: screws + U numbers)
+    rack.appendChild(buildRail(s, "right"));
+
+    // interior cavity, viewed through the x-rayed near wall
+    var cavity = document.createElement("div");
+    cavity.className = "side-cavity";
+    cavity.style.height = height + "px";
+    // blueprint grid: U rows (horizontal) + 100 mm depth marks (vertical)
+    var gridPx = Math.max(12, Math.round(100 * pxPerMm));
+    cavity.style.backgroundImage =
+      "repeating-linear-gradient(to bottom, var(--border) 0 1px, transparent 1px " +
+      U_PX +
+      "px)," +
+      "repeating-linear-gradient(to right, rgba(127,127,127,0.16) 0 1px, transparent 1px " +
+      gridPx +
+      "px)";
+
+    // each device as a chassis receding from the front rail into the rack
     s.devices.forEach(function (d) {
-      for (var r = d.slot; r < d.slot + d.u; r++) rowDevice[r] = d;
-    });
+      var devDepth = d.depth || 250;
+      var wPx = clampN(Math.round(devDepth * pxPerMm), 14, areaPx);
+      var box = document.createElement("div");
+      box.className = "side-dev" + (d.id === s.selectedId ? " selected" : "");
+      if (devDepth > depthMm) box.classList.add("too-deep");
+      box.style.top = (d.slot - 1) * U_PX + "px";
+      box.style.height = d.u * U_PX - 2 + "px";
+      box.style.width = wPx + "px";
+      box.style.background = d.color;
+      box.style.color = textOn(d.color);
+      box.dataset.id = d.id;
+      box.title =
+        d.name + (d.brand ? " · " + d.brand : "") + " — " + devDepth + " mm deep";
 
-    for (var row = 1; row <= s.rack.size; row++) {
-      var d = rowDevice[row];
-      var rowEl = document.createElement("div");
-      rowEl.className = "side-row" + (d ? "" : " empty");
-      if (d && d.id === s.selectedId) rowEl.classList.add("selected");
-
-      var u = document.createElement("div");
-      u.className = "side-u";
-      u.textContent = State.displayNumber(row);
-
-      var bar = document.createElement("div");
-      bar.className = "side-bar";
-      if (d) {
-        bar.style.background = d.color;
-        bar.style.color = textOn(d.color);
-        // label only on the device's top row to avoid repetition
-        bar.textContent = row === d.slot ? d.name + (d.brand ? " · " + d.brand : "") : "";
-        bar.dataset.id = d.id;
-        rowEl.addEventListener("mousedown", (function (id) {
-          return function () {
-            State.select(id);
-          };
-        })(d.id));
-      } else {
-        bar.textContent = "empty";
+      if (wPx > 58) {
+        var lbl = document.createElement("div");
+        lbl.className = "side-label";
+        lbl.textContent = d.name;
+        box.appendChild(lbl);
+      }
+      if (wPx > 42) {
+        var dep = document.createElement("div");
+        dep.className = "side-dep";
+        dep.textContent = devDepth + " mm";
+        box.appendChild(dep);
       }
 
-      rowEl.appendChild(u);
-      rowEl.appendChild(bar);
-      stack.appendChild(rowEl);
-    }
-    profile.appendChild(stack);
+      box.addEventListener("click", function (e) {
+        e.stopPropagation();
+        State.select(d.id);
+      });
+      cavity.appendChild(box);
+    });
+
+    // the see-through near wall: a faint glass sheen over the cavity
+    var glass = document.createElement("div");
+    glass.className = "side-glass";
+    cavity.appendChild(glass);
+
+    rack.appendChild(cavity);
+    profile.appendChild(rack);
     return profile;
   }
 
