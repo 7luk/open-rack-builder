@@ -777,6 +777,21 @@
   pointer-events: none; /* only the cable strokes are interactive */
   overflow: visible;
 }
+/* in the 2D rear view, draw cables ABOVE the device plates (z-index 3) */
+.topo-cables.over {
+  z-index: 6;
+}
+/* live length label on a cable */
+.cable-label {
+  font-size: 9px;
+  font-weight: 600;
+  fill: var(--text-primary);
+  paint-order: stroke;
+  stroke: var(--surface-0);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
 .topo-cable {
   fill: none;
   stroke-width: 2.5;
