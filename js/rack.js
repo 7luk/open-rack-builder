@@ -86,6 +86,14 @@ window.Rack = (function () {
 
     plate.appendChild(slots);
     plate.appendChild(buildRail(s, "right"));
+
+    // four corner rivets — small chassis detail
+    ["tl", "tr", "bl", "br"].forEach(function (pos) {
+      var rivet = document.createElement("div");
+      rivet.className = "rivet rivet-" + pos;
+      plate.appendChild(rivet);
+    });
+
     bindDrop(slots);
     return plate;
   }
@@ -130,14 +138,15 @@ window.Rack = (function () {
   function buildDeviceFace(d, s, side) {
     var el = deviceShell(d, s);
     el.classList.add("face");
-    if (Faceplates.hasImage(d, side)) {
+    var simple = !!s.rack.simpleMode;
+    if (!simple && Faceplates.hasImage(d, side)) {
       el.classList.add("has-image");
     } else {
       // placeholder reads on the device colour
       el.style.background = d.color;
       el.style.color = textOn(d.color);
     }
-    el.appendChild(Faceplates.render(d, side)); // listeners live on el
+    el.appendChild(Faceplates.render(d, side, simple)); // listeners live on el
     return el;
   }
 
@@ -176,7 +185,7 @@ window.Rack = (function () {
     return el;
   }
 
-  var PLATE_PX = 472; // keep in sync with .rack-plate width
+  var PLATE_PX = 560; // keep in sync with .rack-plate width
 
   /* ---------- side / x-ray view ---------- */
   function clampN(n, lo, hi) {

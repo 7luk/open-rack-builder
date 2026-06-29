@@ -93,7 +93,8 @@
 /* ---------- Rack plate ---------- */
 .rack-plate {
   position: relative;
-  width: 472px; /* standard 19" rack, scaled to fit */
+  width: 560px; /* 19" rack at true aspect: device box ≈ 19 : 1.75·U so faceplate
+                   images fill edge-to-edge with no object-fit cropping */
   background: var(--surface-0);
   border: 1px solid var(--border-strong);
   border-radius: 10px;
@@ -134,13 +135,58 @@
 .rail-cell:not(:last-child) {
   border-bottom: 1px dashed var(--border);
 }
+/* square cage-nut mounting hole (EIA rail look) */
 .screw {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--surface-0);
+  border: 1px solid var(--border-strong);
+  box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, 0.3);
+}
+.screw::after {
+  content: "";
+  position: absolute;
+  inset: 1.5px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 0.5px var(--border);
+}
+
+/* inner frame bevel — a thin line inside the chassis edge */
+.rack-plate::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  pointer-events: none;
+}
+/* four corner rivets */
+.rivet {
+  position: absolute;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--surface-0);
+  background: radial-gradient(circle at 35% 35%, var(--surface-2), var(--surface-0));
   border: 1px solid var(--border-strong);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+.rivet-tl { top: 7px; left: 7px; }
+.rivet-tr { top: 7px; right: 7px; }
+.rivet-bl { bottom: 7px; left: 7px; }
+.rivet-br { bottom: 7px; right: 7px; }
+
+/* brushed-metal rail */
+.rail {
+  background: linear-gradient(
+    to right,
+    var(--surface-1),
+    var(--surface-2) 45%,
+    var(--surface-1)
+  );
+  border-color: var(--border-strong);
 }
 .u-number {
   position: absolute;
@@ -223,7 +269,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: fill; /* box matches the faceplate aspect, so this never crops */
   display: block;
   pointer-events: none; /* clicks & drags belong to the .device */
 }

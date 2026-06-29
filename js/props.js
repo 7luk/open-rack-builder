@@ -86,6 +86,18 @@ window.Props = (function () {
     wheelRow.appendChild(wheelToggle);
     wheelField.appendChild(wheelRow);
     globalEl.appendChild(wheelField);
+
+    // simple faceplates: show the generic plates instead of imported images
+    var simpleField = el("div", "field");
+    var simpleRow = el("div", "toggle-row");
+    simpleRow.appendChild(el("label", null, "Simple faceplates"));
+    var simpleToggle = el("div", "toggle" + (r.simpleMode ? " on" : ""));
+    simpleToggle.addEventListener("click", function () {
+      State.setRackSetting("simpleMode", !r.simpleMode);
+    });
+    simpleRow.appendChild(simpleToggle);
+    simpleField.appendChild(simpleRow);
+    globalEl.appendChild(simpleField);
   }
 
   /* ---------- selected device properties ---------- */

@@ -181,7 +181,7 @@ window.Exporter = (function () {
           ";color:" +
           textOn(color) +
           "'>" +
-          faceHTML(d, side) +
+          faceHTML(d, side, s.rack.simpleMode) +
           "</div>"
         );
       })
@@ -212,8 +212,8 @@ window.Exporter = (function () {
   }
 
   /* a device faceplate for the PDF: its framed image, or a labelled blank */
-  function faceHTML(d, side) {
-    var src = side === "rear" ? d.imageRear : d.image;
+  function faceHTML(d, side, simple) {
+    var src = simple ? null : (side === "rear" ? d.imageRear : d.image);
     if (src) return "<img class='pdf-fp' src='" + esc(src) + "' alt=''/>";
     if (side === "rear") {
       var ports = (d.rearLabel || "")

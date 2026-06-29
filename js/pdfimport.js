@@ -392,12 +392,37 @@ window.PdfImport = (function () {
     }
   }
 
-  // vectorise a canvas to a clean SVG data URL (line-art look)
+  // vectorise a canvas to a compact SVG data URL (line-art look).
+  // The source is downscaled first — tracing a full-res photo produces a huge,
+  // slow SVG that overflows local storage; a smaller bitmap traces fast and clean.
   function traceCanvas(canvas) {
-    var ctx = canvas.getContext("2d");
-    var data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    var opts = { numberofcolors: 12, pathomit: 6, ltres: 1, qtres: 1, blurradius: 0, linefilter: true };
-    var svg = window.ImageTracer.imagedataToSVG(data, opts);
+    var maxW = 380;
+    var scale = Math.min(1, maxW / canvas.width);
+    var w = Math.max(1, Math.round(canvas.width * scale));
+    var h = Math.max(1, Math.round(canvas.height * scale));
+    var small = document.createElement("canvas");
+    small.width = w;
+    small.height = h;
+    var sctx = small.getContext("2d");
+    sctx.drawImage(canvas, 0, 0, w, h);
+    var data = sctx.getImageData(0, 0, w, h);
+    var opts = {
+      numberofcolors: 8,
+      colorquantcycles: 3,
+      pathomit: 8,
+      ltres: 1,
+      qtres: 1,
+      blurradius: 0,
+      strokewidth: 1,
+      scale: canvas.width / w, // keep the SVG at the original display size
+    };
+    var svg;
+    try {
+      svg = window.ImageTracer.imagedataToSVG(data, opts);
+    } catch (e) {
+      App.flash("Couldn't trace that image");
+      return canvas.toDataURL("image/jpeg", 0.9); // fall back to raster
+    }
     return "data:image/svg+xml;base64," + b64(svg);
   }
   function b64(str) {

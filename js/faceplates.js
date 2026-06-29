@@ -26,9 +26,10 @@ window.Faceplates = (function () {
     return !!imageFor(device, side);
   }
 
-  /* the faceplate content that fills a .device box */
-  function render(device, side) {
-    var src = imageFor(device, side);
+  /* the faceplate content that fills a .device box.
+     `simple` forces the generic placeholder even when an image exists. */
+  function render(device, side, simple) {
+    var src = simple ? null : imageFor(device, side);
     return src ? imageEl(src) : placeholder(device, side);
   }
 

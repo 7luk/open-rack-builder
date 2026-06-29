@@ -32,6 +32,7 @@ window.State = (function () {
         direction: "bottom-up", // bottom-up = U1 at the bottom; top-down = U1 at top
         depth: 600, // rack depth in mm (shown in the side view)
         wheels: false, // casters on the bottom of the rack
+        simpleMode: false, // render the generic placeholder plates, ignore images
       },
       devices: [], // placed devices
       customLibrary: [], // user-defined device templates
@@ -100,6 +101,8 @@ window.State = (function () {
       r.depth = clamp(d, 200, 1500);
     } else if (key === "wheels") {
       r.wheels = !!value;
+    } else if (key === "simpleMode") {
+      r.simpleMode = !!value;
     }
     notify();
   }
@@ -284,6 +287,7 @@ window.State = (function () {
           raw.rack && raw.rack.direction === "top-down" ? "top-down" : "bottom-up",
         depth: clamp(Math.round(Number(raw.rack && raw.rack.depth) || 600), 200, 1500),
         wheels: !!(raw.rack && raw.rack.wheels),
+        simpleMode: !!(raw.rack && raw.rack.simpleMode),
       },
       devices: Array.isArray(raw.devices)
         ? raw.devices.map(function (d) {
