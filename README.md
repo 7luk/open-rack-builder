@@ -36,12 +36,6 @@ Locally, just open the file — no install step, everything runs client-side:
 open index.html
 ```
 
-## Host it
-
-Because it's all static files with relative paths, it deploys to GitHub Pages
-with no build step. In the repo: **Settings → Pages → Build and deployment →
-Deploy from a branch**, pick `main` / `/ (root)`, save, and it'll be served at
-`https://<user>.github.io/open-rack-builder/`.
 
 ## Project structure
 
