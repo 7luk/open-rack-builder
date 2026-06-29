@@ -189,20 +189,22 @@ window.Rack = (function () {
     var profile = document.createElement("div");
     profile.className = "side-profile";
 
-    // depth ruler — "front" sits over the rail, "rear" over the back wall
-    var cap = document.createElement("div");
-    cap.className = "side-depth";
-    cap.style.width = sidePlatePx(s) + "px";
-    cap.innerHTML =
-      "<span>front</span><span class='side-depth-mm'>" +
-      depthMm +
-      " mm</span><span>rear</span>";
-    profile.appendChild(cap);
-
     // the rack box, same plate language as front/rear but seen edge-on
     var rack = document.createElement("div");
     rack.className = "side-rack";
     rack.style.gridTemplateColumns = "26px " + areaPx + "px";
+
+    // depth ruler printed onto the top frame lip (inside the plate padding,
+    // so it adds no height) — "front" over the rail, "rear" over the back wall.
+    // This keeps the side view's footprint identical to front/rear: the rack
+    // box alone is centred, never the rack + a caption above it.
+    var ruler = document.createElement("div");
+    ruler.className = "side-ruler";
+    ruler.innerHTML =
+      "<span>front</span><span class='side-depth-mm'>" +
+      depthMm +
+      " mm</span><span>rear</span>";
+    rack.appendChild(ruler);
 
     // front mounting rail (reuse the front-view rail: screws + U numbers)
     rack.appendChild(buildRail(s, "right"));
