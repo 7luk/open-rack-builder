@@ -155,7 +155,7 @@ window.Rack = (function () {
     var el = document.createElement("div");
     el.className = "device" + (s.selectedId === d.id ? " selected" : "");
     el.style.top = (d.slot - 1) * U_PX + "px";
-    el.style.height = d.u * U_PX - 4 + "px";
+    el.style.height = d.u * U_PX - 1 + "px"; // near-full U: faceplates nearly touch, like real gear
     el.dataset.id = d.id;
     el.draggable = true;
 
@@ -185,7 +185,7 @@ window.Rack = (function () {
     return el;
   }
 
-  var PLATE_PX = 560; // keep in sync with .rack-plate width
+  var PLATE_PX = 502; // keep in sync with .rack-plate width
 
   /* ---------- side / x-ray view ---------- */
   function clampN(n, lo, hi) {
