@@ -13,7 +13,8 @@ create table if not exists public.devices (
   u           int  not null default 1   check (u between 1 and 12),
   color       text default '#2a2a2e',
   depth       int  default 250          check (depth between 20 and 2000),
-  rear_label  text default ''
+  rear_label  text default '',
+  dev         boolean not null default false  -- set server-side (see trigger)
 );
 
 -- Row-Level Security: the server enforces who can read/write, so it is safe
@@ -47,6 +48,30 @@ create policy "devices_delete_own"
   on public.devices for delete
   to authenticated
   using (user_id = auth.uid());
+
+-- "DEV" badge: mark devices published by the project developer. The flag is
+-- set SERVER-SIDE from the signed-in user's verified email, so it can't be
+-- spoofed by a crafted API call, and no email is ever exposed to clients
+-- (the public read returns only this boolean). Change the address below if a
+-- different account should own the badge.
+alter table public.devices add column if not exists dev boolean not null default false;
+
+create or replace function public.set_device_dev_flag()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.dev := coalesce(auth.jwt() ->> 'email', '') = 'thegamingcompani@gmail.com';
+  return new;
+end;
+$$;
+
+drop trigger if exists devices_set_dev_flag on public.devices;
+create trigger devices_set_dev_flag
+  before insert on public.devices
+  for each row execute function public.set_device_dev_flag();
 
 -- Optional moderation later: add a `boolean approved default false` column and
 -- change the read policy to `using (approved)` so only vetted devices show.

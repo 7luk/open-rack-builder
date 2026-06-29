@@ -263,6 +263,36 @@ window.State = (function () {
     notify();
   }
 
+  /* import a device from the community library into the user's own library.
+     Tagged so it shows a flag (and persists). Deduped by brand+name so the
+     same device isn't imported twice. Returns true if it was added. */
+  function importCommunityDevice(def) {
+    var key = libKey(def);
+    var dup = data.customLibrary.some(function (c) {
+      return libKey(c) === key;
+    });
+    if (dup) return false;
+    data.customLibrary.push({
+      cat: def.cat || "Community",
+      name: def.name || "Device",
+      brand: def.brand || "",
+      u: clamp(Math.round(def.u || 1), 1, 60),
+      color: def.color || "#2a2a2e",
+      depth: clamp(Math.round(Number(def.depth) || 250), 20, 2000),
+      rearLabel: def.rearLabel || "",
+      image: null,
+      imageRear: null,
+      community: true, // came from the shared registry → community flag
+      fromDev: !!def.fromDev, // authored by the project dev → special flag
+      custom: true,
+    });
+    notify();
+    return true;
+  }
+  function libKey(d) {
+    return ((d.brand || "") + " " + (d.name || "")).trim().toLowerCase();
+  }
+
   /* ---------- whole-document replace (load / new) ---------- */
   function replace(next) {
     data = normalize(next);
@@ -318,6 +348,8 @@ window.State = (function () {
               rearLabel: c.rearLabel || "",
               image: imageOrNull(c.image),
               imageRear: imageOrNull(c.imageRear),
+              community: !!c.community,
+              fromDev: !!c.fromDev,
               custom: true,
             };
           })
@@ -368,6 +400,7 @@ window.State = (function () {
     select: select,
     // custom library
     addCustomDevice: addCustomDevice,
+    importCommunityDevice: importCommunityDevice,
     // document
     replace: replace,
     reset: reset,

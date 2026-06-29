@@ -143,6 +143,11 @@
   display: flex;
   align-items: stretch;
 }
+/* the [hidden] attribute must win over the flex display above (used to keep
+   the Community menu dormant on file:// / when the backend is unconfigured) */
+.menu[hidden] {
+  display: none;
+}
 .menu-label {
   padding: 0 11px;
   font-size: 12.5px;

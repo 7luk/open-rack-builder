@@ -163,6 +163,10 @@ window.Library = (function () {
     meta.appendChild(name);
     meta.appendChild(brand);
 
+    // provenance flag: dev-authored takes precedence over plain community
+    var flag = flagFor(d);
+    if (flag) meta.appendChild(flag);
+
     var badge = document.createElement("div");
     badge.className = "u-badge";
     badge.textContent = d.u + "U";
@@ -171,6 +175,24 @@ window.Library = (function () {
     el.appendChild(meta);
     el.appendChild(badge);
     return el;
+  }
+
+  // a small provenance pill: "DEV" for project-dev devices, else "community"
+  function flagFor(d) {
+    var f = document.createElement("span");
+    if (d.fromDev) {
+      f.className = "lib-flag dev";
+      f.textContent = "DEV";
+      f.title = "Made by the Open Rack Builder developer";
+      return f;
+    }
+    if (d.community) {
+      f.className = "lib-flag community";
+      f.textContent = "community";
+      f.title = "From the community library";
+      return f;
+    }
+    return null;
   }
 
   function defFromEl(el) {

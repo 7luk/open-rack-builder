@@ -234,6 +234,9 @@ window.App = (function () {
       State.setRackSetting("size", 42);
     },
     shortcuts: openShortcutsModal,
+    "community-browse": function () {
+      Community.openBrowser();
+    },
     "community-auth": function () {
       Community.toggleAuth();
     },

@@ -17,6 +17,8 @@ window.Community = (function () {
   var sb = null; // the supabase client, once loaded
   var session = null; // current auth session, or null for a guest
   var refs = {}; // menu nodes we keep in sync with sign-in state
+  var catalog = []; // last-fetched community devices (for the browse window)
+  var overlay = null; // the open browse modal, or null
 
   /* ---------- lifecycle ---------- */
   function init() {
@@ -52,19 +54,25 @@ window.Community = (function () {
     });
   }
 
-  /* ---------- the device registry ---------- */
+  /* ---------- the device registry ----------
+     Fetched into `catalog` for the Browse window. Unlike the static fallback,
+     community devices are NOT auto-dumped into the sidebar — the user picks
+     which ones to import (they then live in their library with a flag). */
   function loadDevices() {
-    if (!sb) return;
-    sb.from("devices")
-      .select("name,brand,cat,u,color,depth,rear_label,author_name")
-      .order("created_at", { ascending: false })
+    if (!sb) return Promise.resolve([]);
+    return queryDevices(true)
+      .then(function (res) {
+        // tolerate the `dev` column not existing yet (older schema)
+        return res.error ? queryDevices(false) : res;
+      })
       .then(function (res) {
         if (res.error) {
           console.warn("community load failed", res.error);
-          return;
+          return [];
         }
-        var list = (res.data || []).map(function (row) {
+        catalog = (res.data || []).map(function (row) {
           return {
+            id: row.id,
             cat: row.cat || "Community",
             name: row.name,
             brand: row.brand || "",
@@ -72,11 +80,204 @@ window.Community = (function () {
             color: row.color,
             depth: row.depth,
             rearLabel: row.rear_label || "",
+            author: row.author_name || "",
+            fromDev: !!row.dev,
           };
         });
-        Library.setCommunity(list);
-        App.refreshLibrary();
+        if (overlay) renderCards(); // refresh an open window
+        return catalog;
       });
+  }
+  function queryDevices(withDev) {
+    var cols = "id,name,brand,cat,u,color,depth,rear_label,author_name";
+    if (withDev) cols += ",dev";
+    return sb.from("devices").select(cols).order("created_at", { ascending: false });
+  }
+  function refresh() {
+    return loadDevices();
+  }
+
+  /* ---------- the browse window ----------
+     A large (80vw/80vh) modal over a blurred backdrop. Pick devices, import
+     them into your library; already-imported ones are shown as such. */
+  var grid, footBtn, searchInput, query, selected;
+
+  function openBrowser() {
+    if (overlay) return;
+    selected = {};
+    query = "";
+
+    overlay = ce("div", "community-overlay");
+    var modal = ce("div", "community-modal");
+
+    // header: title + search + close
+    var head = ce("div", "cmodal-head");
+    head.appendChild(ce("h2", "cmodal-title", "Community library"));
+    searchInput = document.createElement("input");
+    searchInput.type = "search";
+    searchInput.className = "cmodal-search";
+    searchInput.placeholder = "Search community devices";
+    searchInput.addEventListener("input", function () {
+      query = searchInput.value;
+      renderCards();
+    });
+    head.appendChild(searchInput);
+    var close = ce("button", "cmodal-close", "✕");
+    close.title = "Close";
+    close.addEventListener("click", closeBrowser);
+    head.appendChild(close);
+    modal.appendChild(head);
+
+    // body: the card grid
+    var body = ce("div", "cmodal-body");
+    grid = ce("div", "cdev-grid");
+    body.appendChild(grid);
+    modal.appendChild(body);
+
+    // footer: status + import action
+    var foot = ce("div", "cmodal-foot");
+    var hint = ce("div", "cmodal-hint", session ? "" : "Sign in to publish your own devices.");
+    foot.appendChild(hint);
+    footBtn = ce("button", "btn btn-primary", "Import selected");
+    footBtn.disabled = true;
+    footBtn.addEventListener("click", importSelected);
+    foot.appendChild(footBtn);
+    modal.appendChild(foot);
+
+    overlay.appendChild(modal);
+    // click the dimmed backdrop (outside the panel) to dismiss
+    overlay.addEventListener("mousedown", function (e) {
+      if (e.target === overlay) closeBrowser();
+    });
+    document.body.appendChild(overlay);
+    document.addEventListener("keydown", onOverlayKey, true);
+
+    renderCards();
+    loadDevices(); // always grab the freshest list when opening
+    setTimeout(function () {
+      searchInput.focus();
+    }, 0);
+  }
+
+  function closeBrowser() {
+    if (!overlay) return;
+    document.removeEventListener("keydown", onOverlayKey, true);
+    overlay.remove();
+    overlay = null;
+    grid = footBtn = searchInput = null;
+  }
+
+  // keep app shortcuts from firing while the window is open; Escape closes it
+  function onOverlayKey(e) {
+    if (!overlay) return;
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      closeBrowser();
+      return;
+    }
+    var t = e.target;
+    var typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA");
+    if (!typing) e.stopPropagation();
+  }
+
+  function renderCards() {
+    if (!grid) return;
+    grid.innerHTML = "";
+    var q = (query || "").trim().toLowerCase();
+    var list = catalog.filter(function (d) {
+      if (!q) return true;
+      return (
+        (d.name || "").toLowerCase().indexOf(q) >= 0 ||
+        (d.brand || "").toLowerCase().indexOf(q) >= 0 ||
+        (d.cat || "").toLowerCase().indexOf(q) >= 0
+      );
+    });
+
+    if (!list.length) {
+      grid.appendChild(
+        ce(
+          "div",
+          "cdev-empty",
+          catalog.length
+            ? "No community devices match your search."
+            : "No community devices yet — be the first to publish one!"
+        )
+      );
+      updateFootBtn();
+      return;
+    }
+    list.forEach(function (d) {
+      grid.appendChild(cardEl(d));
+    });
+    updateFootBtn();
+  }
+
+  function cardEl(d) {
+    var imported = isImported(d);
+    var card = ce("div", "cdev-card" + (imported ? " imported" : ""));
+    if (selected[d.id]) card.classList.add("selected");
+
+    var bar = ce("div", "cdev-color");
+    bar.style.background = d.color || "#2a2a2e";
+    card.appendChild(bar);
+
+    var info = ce("div", "cdev-info");
+    info.appendChild(ce("div", "cdev-name", d.name));
+    info.appendChild(ce("div", "cdev-brand", d.brand || "—"));
+    info.appendChild(ce("div", "cdev-spec", d.u + "U · " + (d.cat || "Community")));
+
+    var by = ce("div", "cdev-by");
+    by.appendChild(document.createTextNode(d.author ? "by " + d.author : "by anonymous"));
+    if (d.fromDev) {
+      var badge = ce("span", "lib-flag dev", "DEV");
+      by.appendChild(badge);
+    }
+    info.appendChild(by);
+    card.appendChild(info);
+
+    var tick = ce("div", "cdev-tick", imported ? "✓ Imported" : "");
+    card.appendChild(tick);
+
+    if (!imported) {
+      card.addEventListener("click", function () {
+        if (selected[d.id]) delete selected[d.id];
+        else selected[d.id] = true;
+        card.classList.toggle("selected", !!selected[d.id]);
+        updateFootBtn();
+      });
+    }
+    return card;
+  }
+
+  function updateFootBtn() {
+    if (!footBtn) return;
+    var n = Object.keys(selected).length;
+    footBtn.disabled = n === 0;
+    footBtn.textContent = n ? "Import selected (" + n + ")" : "Import selected";
+  }
+
+  function importSelected() {
+    var ids = Object.keys(selected);
+    if (!ids.length) return;
+    var added = 0;
+    ids.forEach(function (id) {
+      var d = catalog.filter(function (x) {
+        return String(x.id) === String(id);
+      })[0];
+      if (d && State.importCommunityDevice(d)) added++;
+    });
+    selected = {};
+    renderCards(); // imported ones flip to the "Imported" state
+    App.flash(
+      added ? "Imported " + added + " device" + (added > 1 ? "s" : "") : "Already in your library"
+    );
+  }
+
+  function isImported(d) {
+    var key = ((d.brand || "") + " " + (d.name || "")).trim().toLowerCase();
+    return State.get().customLibrary.some(function (c) {
+      return ((c.brand || "") + " " + (c.name || "")).trim().toLowerCase() === key;
+    });
   }
 
   /* ---------- publishing ---------- */
@@ -157,6 +358,12 @@ window.Community = (function () {
   function byAction(name) {
     return document.querySelector('[data-action="' + name + '"]');
   }
+  function ce(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
   function clampInt(v, lo, hi, dflt) {
     var n = parseInt(v, 10);
     if (!isFinite(n)) n = dflt;
@@ -168,7 +375,8 @@ window.Community = (function () {
     enabled: function () {
       return SupabaseClient.enabled();
     },
-    refresh: loadDevices,
+    refresh: refresh,
+    openBrowser: openBrowser,
     publish: publish,
     toggleAuth: toggleAuth,
     signedIn: function () {
