@@ -74,6 +74,7 @@ window.Rack = (function () {
     mount.appendChild(unit);
     applyTransform(); // set the transform first so cable measurements are correct
     if (isTopo) drawTopoCables(mount.querySelector(".topo"));
+    else if (s.view === "rear") drawRackCables(mount.querySelector(".rack-plate"));
   }
 
   /* ---------- front / rear share the rack plate ---------- */
@@ -548,6 +549,58 @@ window.Rack = (function () {
 
     wrap.insertBefore(svg, wrap.firstChild); // behind the nodes
     topoCablesSvg = svg;
+  }
+
+  // draw cables over the rear elevation, anchored to the rendered connectors
+  // (or the device box, when its real image hides individual ports). Cables
+  // sag a little, like patch leads draped across the back of a rack.
+  function drawRackCables(plate) {
+    if (!plate) return;
+    var plateRect = plate.getBoundingClientRect();
+    function center(el) {
+      var r = el.getBoundingClientRect();
+      return {
+        x: (r.left + r.width / 2 - plateRect.left) / zoom,
+        y: (r.top + r.height / 2 - plateRect.top) / zoom,
+      };
+    }
+    function anchor(ref) {
+      var g = plate.querySelector(
+        '.port-glyph[data-dev="' + ref.dev + '"][data-port="' + ref.port + '"]'
+      );
+      if (g) return center(g);
+      var dev = plate.querySelector('.device[data-id="' + ref.dev + '"]');
+      return dev ? center(dev) : null;
+    }
+    var svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("class", "topo-cables");
+    svg.setAttribute("width", plate.offsetWidth);
+    svg.setAttribute("height", plate.offsetHeight);
+    State.get().cables.forEach(function (c) {
+      var a = anchor(c.a),
+        b = anchor(c.b);
+      if (!a || !b) return;
+      var path = document.createElementNS(SVGNS, "path");
+      path.setAttribute("class", "topo-cable");
+      path.setAttribute("d", cableSagPath(a.x, a.y, b.x, b.y));
+      path.style.stroke = window.Ports.color(c.type);
+      path.addEventListener("click", function (e) {
+        e.stopPropagation();
+        State.removeCable(c.id);
+        App.flash("Cable removed");
+      });
+      svg.appendChild(path);
+    });
+    plate.appendChild(svg); // drape the cables on top of the device plates
+  }
+
+  // a gently sagging curve (catenary-ish) between two points
+  function cableSagPath(ax, ay, bx, by) {
+    var dist = Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+    var sag = Math.min(90, Math.max(12, dist * 0.18));
+    var mx = (ax + bx) / 2,
+      my = (ay + by) / 2 + sag;
+    return "M" + ax + "," + ay + " Q" + mx + "," + my + " " + bx + "," + by;
   }
 
   // pick the closest pin pair (each port has a left + right pin) for a cable

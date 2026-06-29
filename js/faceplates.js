@@ -78,8 +78,14 @@ window.Faceplates = (function () {
       // topology view and, later, cable routing.
       var row = document.createElement("div");
       row.className = "fp-ports";
-      ports.forEach(function (p) {
-        row.appendChild(window.Ports.glyph(p.type, p.dir));
+      ports.forEach(function (p, i) {
+        var g = window.Ports.glyph(p.type, p.dir);
+        // tag so the 2D cable layer can anchor to this exact connector
+        if (device && device.id) {
+          g.dataset.dev = device.id;
+          g.dataset.port = i;
+        }
+        row.appendChild(g);
       });
       wrap.appendChild(row);
     } else {
