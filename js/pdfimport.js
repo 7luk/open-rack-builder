@@ -148,7 +148,7 @@ window.PdfImport = (function () {
     var trace = document.createElement("input");
     trace.type = "checkbox";
     traceWrap.appendChild(trace);
-    traceWrap.appendChild(document.createTextNode(" Trace to line art"));
+    traceWrap.appendChild(document.createTextNode(" Technical drawing (B/W)"));
     capRow.appendChild(frontBtn);
     capRow.appendChild(rearBtn);
     capRow.appendChild(traceWrap);
@@ -392,38 +392,64 @@ window.PdfImport = (function () {
     }
   }
 
-  // vectorise a canvas to a compact SVG data URL (line-art look).
-  // The source is downscaled first — tracing a full-res photo produces a huge,
-  // slow SVG that overflows local storage; a smaller bitmap traces fast and clean.
+  // Turn a canvas into a monochrome TECHNICAL DRAWING: Sobel edge-detection into
+  // crisp black linework on white paper. No colour — reads like a datasheet /
+  // blueprint line drawing. Kept as a black/white raster (line art compresses
+  // tiny as PNG) rather than vectorised, since thin edges don't trace cleanly.
   function traceCanvas(canvas) {
-    var maxW = 380;
+    var maxW = 560; // ~ display width, so 1px edges stay ~1px on screen
     var scale = Math.min(1, maxW / canvas.width);
-    var w = Math.max(1, Math.round(canvas.width * scale));
-    var h = Math.max(1, Math.round(canvas.height * scale));
+    var w = Math.max(2, Math.round(canvas.width * scale));
+    var h = Math.max(2, Math.round(canvas.height * scale));
     var small = document.createElement("canvas");
     small.width = w;
     small.height = h;
     var sctx = small.getContext("2d");
     sctx.drawImage(canvas, 0, 0, w, h);
-    var data = sctx.getImageData(0, 0, w, h);
-    var opts = {
-      numberofcolors: 8,
-      colorquantcycles: 3,
-      pathomit: 8,
-      ltres: 1,
-      qtres: 1,
-      blurradius: 0,
-      strokewidth: 1,
-      scale: canvas.width / w, // keep the SVG at the original display size
-    };
-    var svg;
-    try {
-      svg = window.ImageTracer.imagedataToSVG(data, opts);
-    } catch (e) {
-      App.flash("Couldn't trace that image");
-      return canvas.toDataURL("image/jpeg", 0.9); // fall back to raster
+    var sd = sctx.getImageData(0, 0, w, h).data;
+
+    // luminance
+    var gray = new Float32Array(w * h);
+    for (var i = 0, p = 0; i < gray.length; i++, p += 4) {
+      gray[i] = 0.299 * sd[p] + 0.587 * sd[p + 1] + 0.114 * sd[p + 2];
     }
-    return "data:image/svg+xml;base64," + b64(svg);
+
+    // Sobel magnitude → 1-bit edge mask
+    var edge = new Uint8Array(w * h);
+    var thresh = 52;
+    for (var y = 1; y < h - 1; y++) {
+      for (var x = 1; x < w - 1; x++) {
+        var o = y * w + x;
+        var gx =
+          gray[o - w + 1] + 2 * gray[o + 1] + gray[o + w + 1] -
+          (gray[o - w - 1] + 2 * gray[o - 1] + gray[o + w - 1]);
+        var gy =
+          gray[o + w - 1] + 2 * gray[o + w] + gray[o + w + 1] -
+          (gray[o - w - 1] + 2 * gray[o - w] + gray[o - w + 1]);
+        if (gx * gx + gy * gy > thresh * thresh) edge[o] = 1;
+      }
+    }
+
+    // render ink on white, dilated 1px so the strokes read at display size
+    var out = sctx.createImageData(w, h);
+    var od = out.data;
+    for (var yy = 0; yy < h; yy++) {
+      for (var xx = 0; xx < w; xx++) {
+        var oo = yy * w + xx;
+        var on =
+          edge[oo] ||
+          (xx > 0 && edge[oo - 1]) ||
+          (xx < w - 1 && edge[oo + 1]) ||
+          (yy > 0 && edge[oo - w]) ||
+          (yy < h - 1 && edge[oo + w]);
+        var idx = oo * 4;
+        var v = on ? 26 : 255;
+        od[idx] = od[idx + 1] = od[idx + 2] = v;
+        od[idx + 3] = 255;
+      }
+    }
+    sctx.putImageData(out, 0, 0);
+    return small.toDataURL("image/png");
   }
   function b64(str) {
     return btoa(unescape(encodeURIComponent(str)));
