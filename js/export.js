@@ -303,27 +303,27 @@ window.Exporter = (function () {
       ".dev svg *{vector-effect:non-scaling-stroke;}",
       ".casters{display:flex;justify-content:space-between;padding:2px 14px 0;margin-top:2px;}",
       ".caster{width:22px;height:22px;border-radius:50%;border:1.5px solid #1d1d1f;background:#f6f6f8;}",
-      // blueprint topology page
-      ".blueprint{background-color:#0e2c52;color:#eaf2ff;-webkit-print-color-adjust:exact;print-color-adjust:exact;" +
+      // blueprint topology page — monochrome graph paper (print-friendly)
+      ".blueprint{background-color:#fff;color:#1d1d1f;-webkit-print-color-adjust:exact;print-color-adjust:exact;" +
         "background-image:" +
-        "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px)," +
-        "linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)," +
-        "linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px)," +
-        "linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px);" +
+        "linear-gradient(#ececef 1px,transparent 1px)," +
+        "linear-gradient(90deg,#ececef 1px,transparent 1px)," +
+        "linear-gradient(#d8d8de 1px,transparent 1px)," +
+        "linear-gradient(90deg,#d8d8de 1px,transparent 1px);" +
         "background-size:26px 26px,26px 26px,130px 130px,130px 130px;}",
-      ".blueprint h1{color:#fff;}",
-      ".blueprint .meta{color:rgba(234,242,255,.72);}",
-      ".blueprint footer{color:rgba(234,242,255,.6);}",
+      ".blueprint h1{color:#1d1d1f;}",
+      ".blueprint .meta{color:#86868b;}",
+      ".blueprint footer{color:#aeaeb2;}",
       ".topo-grid{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start;margin-top:16px;}",
-      ".bp-node{min-width:170px;background:rgba(10,30,58,.6);border:1px solid rgba(207,227,255,.55);border-radius:9px;overflow:hidden;}",
-      ".bp-node-head{display:flex;flex-direction:column;gap:1px;padding:7px 12px;border-bottom:1px solid rgba(207,227,255,.28);font-weight:600;font-size:12px;}",
-      ".bp-node-brand{font-size:9.5px;color:rgba(207,227,255,.7);font-weight:400;}",
+      ".bp-node{min-width:170px;background:#fff;border:1px solid #c8c8d0;border-radius:9px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);}",
+      ".bp-node-head{display:flex;flex-direction:column;gap:1px;padding:7px 12px;border-bottom:1px solid #e3e3e8;font-weight:600;font-size:12px;}",
+      ".bp-node-brand{font-size:9.5px;color:#86868b;font-weight:400;}",
       ".bp-ports{padding:6px 0;}",
       ".bp-port{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 12px;}",
-      ".bp-plabel{flex:1 1 auto;text-align:center;font-size:10px;color:rgba(234,242,255,.92);}",
-      ".bp-ports.generic .bp-plabel{color:rgba(234,242,255,.5);font-style:italic;}",
-      ".bp-pin{flex:0 0 auto;width:8px;height:8px;border-radius:50%;border:1.5px solid #cfe3ff;background:#0b2545;}",
-      ".bp-empty{color:rgba(234,242,255,.7);padding:30px 0;}",
+      ".bp-plabel{flex:1 1 auto;text-align:center;font-size:10px;color:#3a3a3e;}",
+      ".bp-ports.generic .bp-plabel{color:#9a9aa0;font-style:italic;}",
+      ".bp-pin{flex:0 0 auto;width:8px;height:8px;border-radius:50%;border:1.5px solid #8a8a90;background:#fff;}",
+      ".bp-empty{color:#86868b;padding:30px 0;}",
       // footer
       "footer{position:absolute;left:40px;bottom:24px;color:#aeaeb2;font-size:11px;}",
       // pagination
