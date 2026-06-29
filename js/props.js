@@ -141,6 +141,22 @@ window.Props = (function () {
     colorField.appendChild(sw);
     deviceEl.appendChild(colorField);
 
+    // faceplate image — frame a real illustration (stored locally)
+    var imgField = el("div", "field");
+    imgField.appendChild(el("label", null, "Faceplate image"));
+    var imgRow = el("div", "nudge");
+    imgRow.appendChild(faceBtn("Front…", d.id, "front", !!d.image));
+    imgRow.appendChild(faceBtn("Rear…", d.id, "rear", !!d.imageRear));
+    imgField.appendChild(imgRow);
+    if (d.image || d.imageRear) {
+      var clrRow = el("div", "nudge");
+      clrRow.style.marginTop = "6px";
+      if (d.image) clrRow.appendChild(clearBtn("Remove front", d.id, "image"));
+      if (d.imageRear) clrRow.appendChild(clearBtn("Remove rear", d.id, "imageRear"));
+      imgField.appendChild(clrRow);
+    }
+    deviceEl.appendChild(imgField);
+
     // status LED toggle
     var ledField = el("div", "field");
     var ledRow = el("div", "toggle-row");
@@ -272,6 +288,25 @@ window.Props = (function () {
   function segBtn(label, active, onClick) {
     var b = el("button", active ? "active" : null, label);
     b.addEventListener("click", onClick);
+    return b;
+  }
+
+  // opens the import & frame modal for a device side; a check marks a set image
+  function faceBtn(label, id, side, has) {
+    var b = el("button", "btn", (has ? "✓ " : "") + label);
+    b.title = (has ? "Re-frame the " : "Frame the ") + side + " illustration";
+    b.addEventListener("click", function () {
+      App.openFrameModal(id, side);
+    });
+    return b;
+  }
+  function clearBtn(label, id, key) {
+    var b = el("button", "btn", label);
+    b.addEventListener("click", function () {
+      var patch = {};
+      patch[key] = null;
+      State.updateDevice(id, patch);
+    });
     return b;
   }
 

@@ -170,8 +170,9 @@ window.State = (function () {
       depth: clamp(Math.round(Number(def.depth) || 250), 20, 2000),
       slot: slot,
       led: true,
-      rearLabel: "",
-      face: Faceplates.normalizeFace(def.face),
+      rearLabel: def.rearLabel || "",
+      image: imageOrNull(def.image),
+      imageRear: imageOrNull(def.imageRear),
     };
     data.devices.push(d);
     data.selectedId = d.id;
@@ -251,7 +252,9 @@ window.State = (function () {
       u: clamp(Math.round(def.u || 1), 1, 60),
       color: def.color || "#2a2a2e",
       depth: clamp(Math.round(Number(def.depth) || 250), 20, 2000),
-      face: Faceplates.normalizeFace(def.face),
+      rearLabel: def.rearLabel || "",
+      image: imageOrNull(def.image),
+      imageRear: imageOrNull(def.imageRear),
       custom: true,
     });
     notify();
@@ -294,7 +297,8 @@ window.State = (function () {
               slot: clamp(Math.round(Number(d.slot) || 1), 1, 60),
               led: d.led !== false,
               rearLabel: d.rearLabel || "",
-              face: Faceplates.normalizeFace(d.face),
+              image: imageOrNull(d.image),
+              imageRear: imageOrNull(d.imageRear),
             };
           })
         : [],
@@ -307,7 +311,9 @@ window.State = (function () {
               u: clamp(Math.round(Number(c.u) || 1), 1, 60),
               color: c.color || "#2a2a2e",
               depth: clamp(Math.round(Number(c.depth) || 250), 20, 2000),
-              face: Faceplates.normalizeFace(c.face),
+              rearLabel: c.rearLabel || "",
+              image: imageOrNull(c.image),
+              imageRear: imageOrNull(c.imageRear),
               custom: true,
             };
           })
@@ -320,6 +326,11 @@ window.State = (function () {
   /* ---------- small util ---------- */
   function clamp(n, lo, hi) {
     return Math.min(hi, Math.max(lo, n));
+  }
+  // a faceplate image is a local data: URL (or http(s) reference); anything
+  // else (including stale legacy `face` specs) becomes null → placeholder.
+  function imageOrNull(v) {
+    return typeof v === "string" && /^(data:|https?:|blob:)/.test(v) ? v : null;
   }
 
   return {

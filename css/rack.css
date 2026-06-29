@@ -210,24 +210,97 @@
   z-index: 2;
 }
 
-/* faceplate line art fills the device edge to edge */
+/* the faceplate (framed image or placeholder) fills the device edge to edge */
 .device.face {
   padding: 0;
   display: block;
 }
-.fp {
+.device.face.has-image {
+  background: none !important;
+}
+.fp-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover;
   display: block;
   pointer-events: none; /* clicks & drags belong to the .device */
 }
-.fp * {
-  vector-effect: non-scaling-stroke; /* crisp ~1px lines at any zoom */
-}
 
-/* live faceplate preview in the custom-device modal */
+/* generic blank panel when a device has no framed image yet */
+.fp-blank {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 12px;
+  text-align: center;
+  pointer-events: none;
+}
+.fp-blank-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+  max-width: 100%;
+}
+.fp-blank-name {
+  font-size: 12.5px;
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.fp-blank-brand {
+  font-size: 10px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+/* rear placeholder: the device's ports as small tags */
+.fp-blank-ports {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 3px 4px;
+  max-height: 100%;
+  overflow: hidden;
+}
+.fp-blank-port {
+  font-size: 8.5px;
+  line-height: 1.5;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  opacity: 0.78;
+  white-space: nowrap;
+}
+/* faint corner mounting screws on the blank panel */
+.fp-screws {
+  position: absolute;
+  inset: 4px 6px;
+  pointer-events: none;
+}
+.fp-screws span {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  opacity: 0.32;
+}
+.fp-screws span:nth-child(1) { top: 0; left: 0; }
+.fp-screws span:nth-child(2) { top: 0; right: 0; }
+.fp-screws span:nth-child(3) { bottom: 0; left: 0; }
+.fp-screws span:nth-child(4) { bottom: 0; right: 0; }
+
+/* image preview frame in the import & frame modal */
 .fp-preview {
   position: relative;
   width: 100%;

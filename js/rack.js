@@ -117,23 +117,27 @@ window.Rack = (function () {
     return rail;
   }
 
-  /* ---------- front faceplate: CAD-blueprint line art ---------- */
+  /* ---------- front faceplate: framed image or generic placeholder ---------- */
   function buildDeviceFront(d, s) {
-    var el = deviceShell(d, s);
-    el.classList.add("face");
-    el.style.background = d.color;
-    el.style.color = textOn(d.color); // line art inherits via currentColor
-    el.innerHTML = Faceplates.svg(d); // listeners live on el, not its children
-    return el;
+    return buildDeviceFace(d, s, "front");
   }
 
-  /* ---------- rear view: real I/O panel, same line-art engine ---------- */
+  /* ---------- rear view: framed image or rear-port placeholder ---------- */
   function buildDeviceRear(d, s) {
+    return buildDeviceFace(d, s, "rear");
+  }
+
+  function buildDeviceFace(d, s, side) {
     var el = deviceShell(d, s);
     el.classList.add("face");
-    el.style.background = d.color;
-    el.style.color = textOn(d.color);
-    el.innerHTML = Faceplates.svg(d, "rear");
+    if (Faceplates.hasImage(d, side)) {
+      el.classList.add("has-image");
+    } else {
+      // placeholder reads on the device colour
+      el.style.background = d.color;
+      el.style.color = textOn(d.color);
+    }
+    el.appendChild(Faceplates.render(d, side)); // listeners live on el
     return el;
   }
 

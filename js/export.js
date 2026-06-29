@@ -181,7 +181,7 @@ window.Exporter = (function () {
           ";color:" +
           textOn(color) +
           "'>" +
-          Faceplates.svg(d, side) +
+          faceHTML(d, side) +
           "</div>"
         );
       })
@@ -207,6 +207,32 @@ window.Exporter = (function () {
       devs +
       "</div>" +
       wheels +
+      "</div>"
+    );
+  }
+
+  /* a device faceplate for the PDF: its framed image, or a labelled blank */
+  function faceHTML(d, side) {
+    var src = side === "rear" ? d.imageRear : d.image;
+    if (src) return "<img class='pdf-fp' src='" + esc(src) + "' alt=''/>";
+    if (side === "rear") {
+      var ports = (d.rearLabel || "")
+        .split(",")
+        .map(function (x) { return x.trim(); })
+        .filter(Boolean);
+      if (ports.length) {
+        return (
+          "<div class='pdf-blank pdf-rear'>" +
+          ports.map(function (p) { return "<span class='pdf-port'>" + esc(p) + "</span>"; }).join("") +
+          "</div>"
+        );
+      }
+    }
+    return (
+      "<div class='pdf-blank'><span class='pdf-bname'>" +
+      esc(d.name) +
+      "</span>" +
+      (d.brand ? "<span class='pdf-bbrand'>" + esc(d.brand) + "</span>" : "") +
       "</div>"
     );
   }
@@ -299,8 +325,12 @@ window.Exporter = (function () {
       ".plate{position:relative;background:#f6f6f8;border:1px solid #1d1d1f;border-radius:8px;overflow:hidden;}",
       ".unum{position:absolute;left:0;width:20px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#aeaeb2;font-variant-numeric:tabular-nums;border-right:1px solid #e3e3e8;}",
       ".dev{position:absolute;border:1px solid rgba(0,0,0,.4);border-radius:3px;overflow:hidden;}",
-      ".dev .fp{position:absolute;inset:0;width:100%;height:100%;display:block;}",
-      ".dev svg *{vector-effect:non-scaling-stroke;}",
+      ".pdf-fp{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}",
+      ".pdf-blank{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0 8px;text-align:center;overflow:hidden;}",
+      ".pdf-blank.pdf-rear{flex-direction:row;flex-wrap:wrap;align-content:center;gap:3px;}",
+      ".pdf-bname{font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}",
+      ".pdf-bbrand{font-size:8px;opacity:.72;}",
+      ".pdf-port{font-size:7px;line-height:1.5;border:1px solid currentColor;border-radius:2px;padding:0 3px;opacity:.85;white-space:nowrap;}",
       ".casters{display:flex;justify-content:space-between;padding:2px 14px 0;margin-top:2px;}",
       ".caster{width:22px;height:22px;border-radius:50%;border:1.5px solid #1d1d1f;background:#f6f6f8;}",
       // blueprint topology page — monochrome graph paper (print-friendly)

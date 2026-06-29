@@ -67,25 +67,28 @@ window.Persist = (function () {
     download(JSON.stringify(State.get(), null, 2), safe(State.get().projectName) + ".json");
   }
 
-  /* ---------- single device, as a portable, shareable object ---------- */
-  /* The faceplate is resolved to a concrete spec so the device is fully
-     self-contained — it carries its own line art, no code dependency. */
-  function deviceJSON(device) {
-    return {
+  /* ---------- single device, as a portable object ----------
+     `includeImages` controls whether the locally-framed faceplate images
+     travel with it. Local file export keeps them (the user's own assets);
+     community submissions must NOT, so no third-party artwork is published. */
+  function deviceJSON(device, includeImages) {
+    var d = {
       cat: device.cat || "Community",
       name: device.name || "Device",
       brand: device.brand || "",
       u: device.u || 1,
       color: device.color || "#2a2a2e",
       depth: device.depth || 250,
-      face: {
-        spec: Faceplates.resolveSpec(device, "front"),
-        rearSpec: Faceplates.resolveSpec(device, "rear"),
-      },
+      rearLabel: device.rearLabel || "",
     };
+    if (includeImages) {
+      if (device.image) d.image = device.image;
+      if (device.imageRear) d.imageRear = device.imageRear;
+    }
+    return d;
   }
   function exportDevice(device) {
-    var d = deviceJSON(device);
+    var d = deviceJSON(device, true);
     download(JSON.stringify(d, null, 2), safe((d.brand ? d.brand + "-" : "") + d.name) + ".device.json");
   }
   /* read a device file and add it to the user's custom library */
@@ -103,7 +106,9 @@ window.Persist = (function () {
             u: d.u,
             color: d.color,
             depth: d.depth,
-            face: d.face,
+            rearLabel: d.rearLabel,
+            image: d.image,
+            imageRear: d.imageRear,
           });
           resolve(true);
         } catch (e) {

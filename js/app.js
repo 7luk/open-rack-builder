@@ -470,9 +470,11 @@ window.App = (function () {
     });
   }
 
-  /* open a prefilled GitHub issue to submit a device to the shared registry */
+  /* open a prefilled GitHub issue to submit a device to the shared registry.
+     Images are deliberately excluded — only metadata is shared publicly, so a
+     user's locally-framed illustrations never end up in the public repo. */
   function contributeDevice(device) {
-    var data = Persist.deviceJSON(device);
+    var data = Persist.deviceJSON(device, false);
     var json = JSON.stringify(data, null, 2);
     var title = "Device: " + (data.brand ? data.brand + " " : "") + data.name;
     var body =
@@ -556,29 +558,21 @@ window.App = (function () {
     openModal(modal);
   }
 
-  // add custom device — compose a line-art faceplate with a live preview
+  // add custom device — metadata + colour; frame its illustration after placing
   function openCustomModal() {
-    var modal = modalShell("Add custom device", "Compose its faceplate; it joins your library.");
+    var modal = modalShell(
+      "Add custom device",
+      "Adds it to your library. Place it, then frame its real illustration from the properties panel."
+    );
 
     var name = labeledInput(modal, "Name", "text", "My device");
     var brand = labeledInput(modal, "Brand / model", "text", "");
     var u = labeledInput(modal, "Size (U)", "number", "1");
     u.min = 1;
     u.max = 12;
-
-    // faceplate style
-    var styleField = elx("div", "modal-field");
-    styleField.appendChild(elx("label", null, "Faceplate style"));
-    var sel = document.createElement("select");
-    Faceplates.TEMPLATES.forEach(function (t) {
-      var o = document.createElement("option");
-      o.value = t.id;
-      o.textContent = t.label;
-      if (t.id === "comp") o.selected = true;
-      sel.appendChild(o);
-    });
-    styleField.appendChild(sel);
-    modal.appendChild(styleField);
+    var depth = labeledInput(modal, "Depth (mm)", "number", "250");
+    depth.min = 20;
+    depth.max = 2000;
 
     // color picker (palette swatches)
     var colorField = elx("div", "modal-field");
@@ -601,33 +595,29 @@ window.App = (function () {
     colorField.appendChild(sw);
     modal.appendChild(colorField);
 
-    // live preview
+    // live preview of the placeholder panel
     var previewField = elx("div", "modal-field");
     previewField.appendChild(elx("label", null, "Preview"));
     var preview = elx("div", "fp-preview");
     previewField.appendChild(preview);
     modal.appendChild(previewField);
 
-    function currentFace() {
-      return { t: sel.value };
-    }
     function updatePreview() {
       var uu = Math.max(1, Math.min(12, parseInt(u.value, 10) || 1));
       preview.style.height = Math.max(34, Math.min(120, uu * 26)) + "px";
       preview.style.background = chosen.color;
       preview.style.color = Rack.textOn(chosen.color);
-      preview.innerHTML = Faceplates.svg({
-        name: name.value || "Device",
-        u: uu,
-        color: chosen.color,
-        led: true,
-        face: currentFace(),
-      });
+      preview.innerHTML = "";
+      preview.appendChild(
+        Faceplates.render(
+          { name: name.value || "Device", brand: brand.value, u: uu, color: chosen.color },
+          "front"
+        )
+      );
     }
-    [name, u].forEach(function (i) {
+    [name, brand, u].forEach(function (i) {
       i.addEventListener("input", updatePreview);
     });
-    sel.addEventListener("change", updatePreview);
 
     modalActions(modal, "Add to library", false, function () {
       var nm = name.value.trim();
@@ -640,8 +630,8 @@ window.App = (function () {
         name: nm,
         brand: brand.value.trim(),
         u: parseInt(u.value, 10) || 1,
+        depth: parseInt(depth.value, 10) || 250,
         color: chosen.color,
-        face: currentFace(),
       });
       flash("Added to library");
     });
@@ -650,6 +640,212 @@ window.App = (function () {
     setTimeout(function () {
       name.focus();
     }, 0);
+  }
+
+  /* =================== import & frame a faceplate image =================== */
+  // Lets the user import OR paste an illustration, pan/zoom-crop it to the
+  // faceplate aspect, and store the framed result on the device (locally).
+  function openFrameModal(deviceId, side) {
+    var d = State.byId(deviceId);
+    if (!d) return;
+    var isRear = side === "rear";
+    var aspect = Faceplates.ASPECT / d.u; // width : height of this faceplate
+
+    var modal = modalShell(
+      "Frame the " + (isRear ? "rear" : "front") + " illustration",
+      "Import or paste an image (a cropped page from a manual works well), then drag to position and use the slider to zoom."
+    );
+    modal.classList.add("modal-frame");
+
+    // --- frame / crop viewport (width must match the crop math exactly) ---
+    var FW = 320;
+    var FH = Math.max(26, Math.round(FW / aspect));
+    var stage = elx("div", "frame-stage");
+    stage.style.width = FW + "px";
+    stage.style.height = FH + "px";
+    var img = document.createElement("img");
+    img.className = "frame-img";
+    img.draggable = false;
+    stage.appendChild(img);
+    var hint = elx("div", "frame-hint");
+    hint.innerHTML =
+      "<strong>Drop, choose, or paste an image</strong><span>a screenshot of the device from a PDF / photo</span>";
+    stage.appendChild(hint);
+    modal.appendChild(stage);
+
+    // --- controls row: choose file + zoom slider ---
+    var controls = elx("div", "frame-controls");
+    var fileBtn = elx("button", "btn", "Choose image…");
+    var file = document.createElement("input");
+    file.type = "file";
+    file.accept = "image/*";
+    file.style.display = "none";
+    fileBtn.addEventListener("click", function () { file.click(); });
+    var zoom = document.createElement("input");
+    zoom.type = "range";
+    zoom.min = "1";
+    zoom.max = "4";
+    zoom.step = "0.01";
+    zoom.value = "1";
+    zoom.className = "frame-zoom";
+    zoom.disabled = true;
+    controls.appendChild(fileBtn);
+    controls.appendChild(zoom);
+    controls.appendChild(file);
+    modal.appendChild(controls);
+
+    // --- crop state ---
+    var st = { nat: null, cover: 1, z: 1, ox: 0, oy: 0, drag: null };
+
+    function displayScale() { return st.cover * st.z; }
+    function clampOffsets() {
+      var dw = st.nat.w * displayScale();
+      var dh = st.nat.h * displayScale();
+      st.ox = Math.min(0, Math.max(FW - dw, st.ox));
+      st.oy = Math.min(0, Math.max(FH - dh, st.oy));
+    }
+    function apply() {
+      var dw = st.nat.w * displayScale();
+      img.style.width = dw + "px";
+      img.style.height = "auto";
+      img.style.left = st.ox + "px";
+      img.style.top = st.oy + "px";
+    }
+    function loadSrc(src) {
+      var probe = new Image();
+      probe.onload = function () {
+        st.nat = { w: probe.naturalWidth, h: probe.naturalHeight };
+        st.cover = Math.max(FW / st.nat.w, FH / st.nat.h);
+        st.z = 1;
+        img.src = src;
+        // center
+        st.ox = (FW - st.nat.w * st.cover) / 2;
+        st.oy = (FH - st.nat.h * st.cover) / 2;
+        clampOffsets();
+        apply();
+        stage.classList.add("has-img");
+        zoom.disabled = false;
+        zoom.value = "1";
+        saveBtn.disabled = false;
+      };
+      probe.src = src;
+    }
+
+    // zoom keeps the frame centre anchored on the same image point
+    zoom.addEventListener("input", function () {
+      if (!st.nat) return;
+      var prev = displayScale();
+      var cx = (FW / 2 - st.ox) / prev;
+      var cy = (FH / 2 - st.oy) / prev;
+      st.z = parseFloat(zoom.value);
+      var next = displayScale();
+      st.ox = FW / 2 - cx * next;
+      st.oy = FH / 2 - cy * next;
+      clampOffsets();
+      apply();
+    });
+
+    // drag to pan
+    stage.addEventListener("pointerdown", function (e) {
+      if (!st.nat) return;
+      st.drag = { x: e.clientX, y: e.clientY, ox: st.ox, oy: st.oy };
+      stage.setPointerCapture(e.pointerId);
+    });
+    stage.addEventListener("pointermove", function (e) {
+      if (!st.drag) return;
+      st.ox = st.drag.ox + (e.clientX - st.drag.x);
+      st.oy = st.drag.oy + (e.clientY - st.drag.y);
+      clampOffsets();
+      apply();
+    });
+    function endDrag() { st.drag = null; }
+    stage.addEventListener("pointerup", endDrag);
+    stage.addEventListener("pointercancel", endDrag);
+
+    // file + drag-drop + paste sources
+    file.addEventListener("change", function () {
+      var f = file.files && file.files[0];
+      if (f) readImageFile(f, loadSrc);
+    });
+    stage.addEventListener("dragover", function (e) { e.preventDefault(); stage.classList.add("drop"); });
+    stage.addEventListener("dragleave", function () { stage.classList.remove("drop"); });
+    stage.addEventListener("drop", function (e) {
+      e.preventDefault();
+      stage.classList.remove("drop");
+      var f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) readImageFile(f, loadSrc);
+    });
+    function onPaste(e) {
+      var items = (e.clipboardData && e.clipboardData.items) || [];
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].type && items[i].type.indexOf("image") === 0) {
+          var f = items[i].getAsFile();
+          if (f) { readImageFile(f, loadSrc); e.preventDefault(); return; }
+        }
+      }
+    }
+    document.addEventListener("paste", onPaste);
+
+    // actions: Cancel / Save (and tear down the paste listener)
+    var row = elx("div", "modal-actions");
+    var cancel = elx("button", "btn", "Cancel");
+    var saveBtn = elx("button", "btn btn-primary", "Save faceplate");
+    saveBtn.disabled = true;
+    function close() {
+      document.removeEventListener("paste", onPaste);
+      closeModal();
+    }
+    cancel.addEventListener("click", close);
+    saveBtn.addEventListener("click", function () {
+      if (!st.nat) return;
+      var url = cropToDataURL(img, st, FW, FH, aspect);
+      var patch = {};
+      patch[isRear ? "imageRear" : "image"] = url;
+      State.updateDevice(deviceId, patch);
+      flash("Faceplate saved");
+      close();
+    });
+    row.appendChild(cancel);
+    row.appendChild(saveBtn);
+    modal.appendChild(row);
+
+    // existing image? preload it for re-framing (best-effort centre)
+    if ((isRear ? d.imageRear : d.image)) loadSrc(isRear ? d.imageRear : d.image);
+
+    openModal(modal);
+    // closing via backdrop must also drop the paste listener
+    refs.modalHost.addEventListener("mousedown", function once(e) {
+      if (e.target === refs.modalHost) {
+        document.removeEventListener("paste", onPaste);
+        refs.modalHost.removeEventListener("mousedown", once);
+      }
+    });
+  }
+
+  function readImageFile(file, cb) {
+    if (!/^image\//.test(file.type)) { flash("That isn't an image file"); return; }
+    var reader = new FileReader();
+    reader.onload = function () { cb(reader.result); };
+    reader.readAsDataURL(file);
+  }
+
+  // render the framed region to a downscaled JPEG data URL (keeps storage small)
+  function cropToDataURL(img, st, FW, FH, aspect) {
+    var s = st.cover * st.z;
+    var sx = -st.ox / s;
+    var sy = -st.oy / s;
+    var sw = FW / s;
+    var sh = FH / s;
+    var outW = Math.min(760, Math.round(st.nat.w));
+    var outH = Math.max(24, Math.round(outW / aspect));
+    var canvas = document.createElement("canvas");
+    canvas.width = outW;
+    canvas.height = outH;
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff"; // flatten any transparency for JPEG
+    ctx.fillRect(0, 0, outW, outH);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+    return canvas.toDataURL("image/jpeg", 0.9);
   }
 
   function labeledInput(modal, label, type, value) {
@@ -718,6 +914,7 @@ window.App = (function () {
       App_dragMove = v;
     },
     contributeDevice: contributeDevice,
+    openFrameModal: openFrameModal,
     flash: flash,
   };
 })();
