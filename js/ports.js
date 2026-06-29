@@ -14,15 +14,15 @@ window.Ports = (function () {
 
   // registry: colour + the drawn connector shape/size (≈ real proportions)
   var TYPES = [
-    { key: "xlr", label: "XLR", abbr: "XLR", color: "#2f6fed", shape: "round", w: 16, h: 16 },
-    { key: "jack", label: 'Jack (¼")', abbr: "JACK", color: "#e08a1e", shape: "round", w: 11, h: 11 },
-    { key: "speakon", label: "speakON", abbr: "SPK", color: "#2f9e57", shape: "round", w: 15, h: 15 },
-    { key: "power", label: "Power", abbr: "PWR", color: "#d23b3b", shape: "rect", w: 15, h: 11 },
-    { key: "ethernet", label: "Ethernet / etherCON", abbr: "NET", color: "#8a5cf0", shape: "rect", w: 13, h: 12 },
-    { key: "midi", label: "MIDI", abbr: "MIDI", color: "#1aa6a6", shape: "round", w: 14, h: 14 },
-    { key: "usb", label: "USB", abbr: "USB", color: "#6b7280", shape: "rect", w: 13, h: 7 },
-    { key: "bnc", label: "BNC", abbr: "BNC", color: "#c2a01e", shape: "round", w: 9, h: 9 },
-    { key: "other", label: "Other", abbr: "PORT", color: "#8a8f98", shape: "rect", w: 11, h: 9 },
+    { key: "xlr", label: "XLR", short: "XLR", abbr: "XLR", color: "#2f6fed", shape: "round", w: 16, h: 16 },
+    { key: "jack", label: 'Jack (¼")', short: "Jack", abbr: "JACK", color: "#e08a1e", shape: "round", w: 11, h: 11 },
+    { key: "speakon", label: "speakON", short: "speakON", abbr: "SPK", color: "#2f9e57", shape: "round", w: 15, h: 15 },
+    { key: "power", label: "Power", short: "Power", abbr: "PWR", color: "#d23b3b", shape: "rect", w: 15, h: 11 },
+    { key: "ethernet", label: "Ethernet / etherCON", short: "Ethernet", abbr: "NET", color: "#8a5cf0", shape: "rect", w: 13, h: 12 },
+    { key: "midi", label: "MIDI", short: "MIDI", abbr: "MIDI", color: "#1aa6a6", shape: "round", w: 14, h: 14 },
+    { key: "usb", label: "USB", short: "USB", abbr: "USB", color: "#6b7280", shape: "rect", w: 13, h: 7 },
+    { key: "bnc", label: "BNC", short: "BNC", abbr: "BNC", color: "#c2a01e", shape: "round", w: 9, h: 9 },
+    { key: "other", label: "Other", short: "Other", abbr: "PORT", color: "#8a8f98", shape: "rect", w: 11, h: 9 },
   ];
   var byKey = {};
   TYPES.forEach(function (t) {
@@ -128,7 +128,8 @@ window.Ports = (function () {
       var dot = ce("span", "ports-dot");
       dot.style.background = t.color;
       lab.appendChild(dot);
-      lab.appendChild(document.createTextNode(t.label));
+      lab.appendChild(document.createTextNode(t.short || t.label));
+      lab.title = t.label;
       row.appendChild(lab);
       row.appendChild(stepper(t.key, "in"));
       row.appendChild(stepper(t.key, "out"));

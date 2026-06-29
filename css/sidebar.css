@@ -357,7 +357,7 @@
 }
 .ports-col-h {
   flex: 0 0 auto;
-  width: 60px;
+  width: 54px;
   text-align: center;
   font-size: 10px;
   text-transform: uppercase;
@@ -369,11 +369,11 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 60px;
+  width: 54px;
 }
 .ports-step-btn {
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
   font-size: 14px;
   line-height: 1;
   color: var(--text-primary);
