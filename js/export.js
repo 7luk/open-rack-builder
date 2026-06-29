@@ -84,8 +84,44 @@ window.Exporter = (function () {
       "U free of " +
       s.rack.size +
       "U</td></tr></tfoot></table>" +
-      "<footer>Open Rack Builder — page 1 of 3 · components</footer>" +
+      cablesTable(s) +
+      "<footer>Open Rack Builder — page 1 of 3 · components &amp; cables</footer>" +
       "</section>"
+    );
+  }
+
+  /* cables summary table with estimated lengths (page 1) */
+  function cablesTable(s) {
+    if (!s.cables || !s.cables.length) return "";
+    var rows = s.cables
+      .map(function (c, i) {
+        var da = State.byId(c.a.dev),
+          db = State.byId(c.b.dev);
+        if (!da || !db) return "";
+        var pa = da.ports[c.a.port],
+          pb = db.ports[c.b.port];
+        var std = State.cableStandardM(State.cableLengthMm(c));
+        return (
+          "<tr><td class='c'>" + (i + 1) + "</td>" +
+          "<td><span class='swatch' style='background:" + esc(window.Ports.color(c.type)) + "'></span> " +
+          esc(window.Ports.label(c.type)) + "</td>" +
+          "<td>" + esc(da.name) + " · " + esc(pa ? pa.label : "?") + "</td>" +
+          "<td>" + esc(db.name) + " · " + esc(pb ? pb.label : "?") + "</td>" +
+          "<td class='c'>" + std + " m</td></tr>"
+        );
+      })
+      .join("");
+    var total = s.cables.reduce(function (sum, c) {
+      return sum + State.cableStandardM(State.cableLengthMm(c));
+    }, 0);
+    return (
+      "<h2 class='subhead'>Cables</h2>" +
+      "<table class='grid'><thead><tr>" +
+      "<th class='c'>#</th><th>Type</th><th>From</th><th>To</th><th class='c'>Length</th>" +
+      "</tr></thead><tbody>" + rows + "</tbody><tfoot><tr>" +
+      "<td colspan='5'>" + s.cables.length + " cable" + (s.cables.length === 1 ? "" : "s") +
+      " · ≈" + (Math.round(total * 10) / 10) + " m total (standard lengths)</td>" +
+      "</tr></tfoot></table>"
     );
   }
 
@@ -307,6 +343,7 @@ window.Exporter = (function () {
       ".page{padding:40px;min-height:100vh;position:relative;}",
       "header{margin-bottom:20px;}",
       "h1{font-size:20px;font-weight:600;margin:0 0 4px;}",
+      "h2.subhead{font-size:13px;font-weight:600;margin:22px 0 0;}",
       ".meta{color:#86868b;font-size:12px;}",
       // table (spreadsheet grid)
       "table.grid{width:100%;border-collapse:collapse;margin-top:8px;border:1px solid #c8c8d0;}",

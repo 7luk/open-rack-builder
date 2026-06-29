@@ -306,6 +306,23 @@ window.State = (function () {
   function cuid() {
     return "cab-" + Math.random().toString(36).slice(2, 9);
   }
+  // rough physical cable length (mm): vertical run between the two devices'
+  // centres (1U = 44.45 mm) plus a service-loop allowance at each end.
+  function cableLengthMm(c) {
+    var da = byId(c.a.dev),
+      db = byId(c.b.dev);
+    if (!da || !db) return 0;
+    var ca = da.slot + (da.u - 1) / 2;
+    var cb = db.slot + (db.u - 1) / 2;
+    return Math.round(Math.abs(ca - cb) * 44.45 + 500);
+  }
+  // the next standard cable length (m) you'd actually buy for `mm`
+  function cableStandardM(mm) {
+    var m = mm / 1000;
+    var std = [0.5, 1, 1.5, 2, 3, 5, 7.5, 10, 15, 20, 30];
+    for (var i = 0; i < std.length; i++) if (std[i] >= m) return std[i];
+    return Math.ceil(m);
+  }
 
   /* ---------- selection ---------- */
   function select(id) {
@@ -523,6 +540,8 @@ window.State = (function () {
     addCable: addCable,
     removeCable: removeCable,
     portConnected: portConnected,
+    cableLengthMm: cableLengthMm,
+    cableStandardM: cableStandardM,
     repositionDevice: repositionDevice,
     clearRack: clearRack,
     // selection

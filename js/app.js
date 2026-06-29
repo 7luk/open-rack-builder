@@ -72,6 +72,7 @@ window.App = (function () {
     refs.rackSettings = byId("rack-settings");
     refs.deviceProps = byId("device-props");
     refs.projectName = byId("project-name");
+    refs.cableReadout = byId("cable-readout");
     refs.viewControl = byId("view-control");
     refs.themeToggle = byId("theme-toggle");
     refs.menubar = byId("menubar");
@@ -100,6 +101,20 @@ window.App = (function () {
         b.classList.toggle("active", b.dataset.view === s.view);
       }
     );
+
+    // cable totals in the header bar (sum of recommended standard lengths)
+    var cables = s.cables || [];
+    if (cables.length) {
+      var totalM = cables.reduce(function (sum, c) {
+        return sum + State.cableStandardM(State.cableLengthMm(c));
+      }, 0);
+      refs.cableReadout.hidden = false;
+      refs.cableReadout.textContent =
+        cables.length + (cables.length > 1 ? " cables" : " cable") +
+        " · ≈" + (Math.round(totalM * 10) / 10) + " m";
+    } else {
+      refs.cableReadout.hidden = true;
+    }
 
     Library.render(refs.libraryList, searchQuery);
     Rack.render();
