@@ -70,13 +70,15 @@ window.PdfImport = (function () {
     var crop = { x: 0, y: 0, w: 0, h: 0 };
     var captured = { front: device.image || null, rear: device.imageRear || null };
     var pageNum = 1;
+    var curPage = null, curViewport = null; // kept so we can read the text layer
 
     var modal = el("div", "modal modal-pdf");
     modal.appendChild(el("h2", null, "Faceplate from PDF — " + (device.name || "device")));
     modal.appendChild(
       el("p", null,
         "Load a PDF you have the right to use (a manual or datasheet). Pick the page, " +
-        "drag the box over the front or rear, capture each, then save. It all stays on your device.")
+        "drag the box over the front or rear, capture each. Capturing the rear also reads " +
+        "the port labels from the PDF's text. It all stays on your device.")
     );
 
     /* --- picker (shown first) --- */
@@ -160,6 +162,22 @@ window.PdfImport = (function () {
     previews.appendChild(rearPrev);
     work.appendChild(previews);
 
+    // ports read from the PDF's text layer (drive the topology + rear view)
+    var portsField = el("div", "pdf-portsfield");
+    portsField.appendChild(el("label", "pdf-ports-label", "Ports (read from the PDF text)"));
+    var portsRow = el("div", "pdf-ports-row");
+    var portsInput = document.createElement("input");
+    portsInput.type = "text";
+    portsInput.className = "pdf-ports-input";
+    portsInput.placeholder = "comma-separated — e.g. Main L, Main R, AES50";
+    portsInput.value = device.rearLabel || "";
+    var detectBtn = el("button", "btn", "Detect from crop");
+    detectBtn.addEventListener("click", function () { detectPorts(); });
+    portsRow.appendChild(portsInput);
+    portsRow.appendChild(detectBtn);
+    portsField.appendChild(portsRow);
+    work.appendChild(portsField);
+
     modal.appendChild(work);
 
     /* --- actions --- */
@@ -169,7 +187,11 @@ window.PdfImport = (function () {
     save.disabled = true;
     cancel.addEventListener("click", function () { cleanup(); App.closeModal(); });
     save.addEventListener("click", function () {
-      State.updateDevice(device.id, { image: captured.front, imageRear: captured.rear });
+      State.updateDevice(device.id, {
+        image: captured.front,
+        imageRear: captured.rear,
+        rearLabel: portsInput.value.trim(),
+      });
       App.flash("Faceplate saved");
       cleanup();
       App.closeModal();
@@ -218,6 +240,8 @@ window.PdfImport = (function () {
         var v1 = page.getViewport({ scale: 1 });
         var renderScale = Math.min(2400, 1400) / v1.width; // crisp render
         var vp = page.getViewport({ scale: renderScale });
+        curPage = page;
+        curViewport = vp;
         pageCanvas.width = Math.round(vp.width);
         pageCanvas.height = Math.round(vp.height);
         var ctx = pageCanvas.getContext("2d");
@@ -304,6 +328,47 @@ window.PdfImport = (function () {
       captured[side] = trace.checked ? traceCanvas(oc) : oc.toDataURL("image/jpeg", 0.92);
       refreshPreviews();
       App.flash("Captured " + side);
+      if (side === "rear") detectPorts(); // ports usually live on the back
+    }
+
+    // pull port labels from the PDF's text layer within the current crop box
+    function detectPorts() {
+      if (!curPage || !curViewport) return;
+      curPage.getTextContent().then(function (tc) {
+        var s = disp.scale;
+        var rx = crop.x / s, ry = crop.y / s, rw = crop.w / s, rh = crop.h / s;
+        var hits = [];
+        tc.items.forEach(function (it) {
+          var str = (it.str || "").trim();
+          if (!str) return;
+          var p = window.pdfjsLib.Util.applyTransform(
+            [it.transform[4], it.transform[5]],
+            curViewport.transform
+          );
+          // small vertical slack so baselines just outside still count
+          if (p[0] >= rx && p[0] <= rx + rw && p[1] >= ry - 8 && p[1] <= ry + rh + 8) {
+            hits.push({ x: p[0], y: p[1], s: str });
+          }
+        });
+        // reading order: top → bottom, then left → right
+        hits.sort(function (a, b) { return Math.abs(a.y - b.y) > 8 ? a.y - b.y : a.x - b.x; });
+        var seen = {}, ports = [];
+        hits.forEach(function (h) {
+          var t = h.s.replace(/\s+/g, " ").trim();
+          if (!t || t.length > 18) return;              // long string → caption, not a label
+          if (/^[.,;:_+\-–—•|]+$/.test(t)) return;       // punctuation only
+          var key = t.toLowerCase();
+          if (seen[key]) return;
+          seen[key] = 1;
+          ports.push(t);
+        });
+        if (ports.length) {
+          portsInput.value = ports.slice(0, 48).join(", ");
+          App.flash("Found " + ports.length + " port label" + (ports.length === 1 ? "" : "s"));
+        } else {
+          App.flash("No readable text in that area");
+        }
+      }).catch(function () { App.flash("Couldn't read the PDF text"); });
     }
 
     function refreshPreviews() {
