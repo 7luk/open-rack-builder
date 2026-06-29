@@ -12,6 +12,6 @@
  * community library + Google sign-in. See supabase/SETUP.md.
  */
 window.ORB_CONFIG = {
-  supabaseUrl: "",     // e.g. "https://abcdefghijkl.supabase.co"
-  supabaseAnonKey: "", // the "anon / public" project key
+  supabaseUrl: "https://lwsbsalmgjnrvkqlvidx.supabase.co",
+  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3c2JzYWxtZ2pucnZrcWx2aWR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NDA4NjAsImV4cCI6MjA5ODMxNjg2MH0.oDsH2PgAKYRhtVbx77kxm6a0n8vmawMMw7DS0wIz7Ww", // the "anon / public" project key — paste it here
 };
