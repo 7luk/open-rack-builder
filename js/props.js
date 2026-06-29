@@ -151,16 +151,16 @@ window.Props = (function () {
     });
     colorField.appendChild(sw);
     adv.appendChild(colorField);
-    // rear labels (shown in rear view)
-    adv.appendChild(
-      textareaField(
-        "Rear ports / patch (comma-separated)",
-        d.rearLabel,
-        function (v) {
-          State.updateDevice(d.id, { rearLabel: v });
-        }
-      )
+    // ports (connectors) — structured; drives the rear plate, topology and
+    // (later) cable routing. Edited as per-type counts.
+    var portsField = el("div", "field");
+    portsField.appendChild(el("label", null, "Ports (connectors)"));
+    portsField.appendChild(
+      Ports.editor(portCountsOf(d), function (c) {
+        State.updateDevice(d.id, { ports: Ports.fromCounts(c) });
+      })
     );
+    adv.appendChild(portsField);
     deviceEl.appendChild(adv);
 
     // status LED toggle (kept out of Advanced — quick toggle)
@@ -295,6 +295,13 @@ window.Props = (function () {
   }
   function sameColor(a, b) {
     return (a || "").toLowerCase() === (b || "").toLowerCase();
+  }
+  // seed counts for the ports editor: structured ports if any, else the legacy
+  // comma-separated rearLabel treated as generic "other" ports
+  function portCountsOf(d) {
+    if (d.ports && d.ports.length) return Ports.countsFromPorts(d.ports);
+    var n = (d.rearLabel || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean).length;
+    return n ? { other: n } : {};
   }
 
   return { init: init, render: render, PALETTE: PALETTE };

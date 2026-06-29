@@ -333,6 +333,27 @@
   opacity: 0.78;
   white-space: nowrap;
 }
+/* rear placeholder: structured connector chips, colour-coded by port type,
+   dispersed evenly and centred by the flex layout */
+.fp-ports {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 3px 4px;
+  max-height: 100%;
+  overflow: hidden;
+}
+.port-chip {
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1.65;
+  letter-spacing: 0.02em;
+  padding: 0 5px;
+  border-radius: 3px;
+  color: #fff;
+  white-space: nowrap;
+}
 /* faint corner mounting screws on the blank panel */
 .fp-screws {
   position: absolute;

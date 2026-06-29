@@ -70,19 +70,16 @@ window.Faceplates = (function () {
   function rearContent(device) {
     var wrap = document.createElement("div");
     wrap.className = "fp-blank-label";
-    var ports = (device.rearLabel || "")
-      .split(",")
-      .map(function (s) { return s.trim(); })
-      .filter(Boolean);
 
+    var ports = portList(device);
     if (ports.length) {
+      // colour-coded connector chips, dispersed evenly and centred by the
+      // flex layout (.fp-ports). These are the same virtual ports used by the
+      // topology view and, later, cable routing.
       var row = document.createElement("div");
-      row.className = "fp-blank-ports";
+      row.className = "fp-ports";
       ports.forEach(function (p) {
-        var tag = document.createElement("span");
-        tag.className = "fp-blank-port";
-        tag.textContent = p;
-        row.appendChild(tag);
+        row.appendChild(window.Ports.chip(p.type, window.Ports.abbr(p.type)));
       });
       wrap.appendChild(row);
     } else {
@@ -96,6 +93,17 @@ window.Faceplates = (function () {
       wrap.appendChild(hint);
     }
     return wrap;
+  }
+
+  // a device's ports: the structured list if present, else the legacy
+  // comma-separated rearLabel parsed as generic "other" ports.
+  function portList(device) {
+    if (device && device.ports && device.ports.length) return device.ports;
+    return (device && device.rearLabel ? device.rearLabel : "")
+      .split(",")
+      .map(function (s) { return s.trim(); })
+      .filter(Boolean)
+      .map(function (l) { return { type: "other", label: l }; });
   }
 
   function screwLayer() {

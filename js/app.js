@@ -593,8 +593,8 @@ window.App = (function () {
   // add custom device — metadata + colour; frame its illustration after placing
   function openCustomModal() {
     var modal = modalShell(
-      "Add custom device",
-      "Adds it to your library. Place it, then frame its real illustration from the properties panel."
+      "Add new device",
+      "Based on a real device — set its size and the connectors it has. Place it, then frame its illustration later from the properties panel."
     );
 
     var name = labeledInput(modal, "Name", "text", "My device");
@@ -605,6 +605,18 @@ window.App = (function () {
     var depth = labeledInput(modal, "Depth (mm)", "number", "250");
     depth.min = 20;
     depth.max = 2000;
+
+    // ports (connectors): how many of each type. Drawn on the rear plate and
+    // in topology, evenly spaced — and the anchors for future cable routing.
+    var portCounts = {};
+    var portsField = elx("div", "modal-field");
+    portsField.appendChild(elx("label", null, "Ports (connectors)"));
+    portsField.appendChild(
+      Ports.editor({}, function (c) {
+        portCounts = c;
+      })
+    );
+    modal.appendChild(portsField);
 
     // color picker (palette swatches)
     var colorField = elx("div", "modal-field");
@@ -664,6 +676,7 @@ window.App = (function () {
         u: parseInt(u.value, 10) || 1,
         depth: parseInt(depth.value, 10) || 250,
         color: chosen.color,
+        ports: Ports.fromCounts(portCounts),
       });
       flash("Added to library");
     });

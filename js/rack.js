@@ -295,12 +295,30 @@ window.Rack = (function () {
      Pins carry data-dev / data-port / data-side so a future cable layer can
      anchor connections to them. No cables are drawn yet. */
   function topoPorts(d) {
+    // structured ports (from the device wizard) are the source of truth
+    if (d.ports && d.ports.length) {
+      return {
+        list: d.ports.map(function (p) {
+          return { label: p.label, type: p.type };
+        }),
+        generic: false,
+      };
+    }
+    // legacy fall-backs: comma-separated rearLabel, else generic in/out
     var raw = (d.rearLabel || "")
       .split(",")
       .map(function (x) { return x.trim(); })
       .filter(Boolean);
-    if (raw.length) return { list: raw, generic: false };
-    return { list: genericPorts(d), generic: true };
+    if (raw.length) {
+      return {
+        list: raw.map(function (l) { return { label: l, type: "other" }; }),
+        generic: false,
+      };
+    }
+    return {
+      list: genericPorts(d).map(function (l) { return { label: l, type: "other" }; }),
+      generic: true,
+    };
   }
   function genericPorts(d) {
     var u = d.u || 1;
@@ -390,15 +408,15 @@ window.Rack = (function () {
     var ports = topoPorts(d);
     var list = document.createElement("div");
     list.className = "topo-ports" + (ports.generic ? " generic" : "");
-    ports.list.forEach(function (label, i) {
+    ports.list.forEach(function (p, i) {
       var row = document.createElement("div");
       row.className = "topo-port";
-      row.appendChild(pin(d.id, i, "l"));
+      row.appendChild(pin(d.id, i, "l", p.type));
       var lbl = document.createElement("span");
       lbl.className = "topo-port-label";
-      lbl.textContent = label;
+      lbl.textContent = p.label;
       row.appendChild(lbl);
-      row.appendChild(pin(d.id, i, "r"));
+      row.appendChild(pin(d.id, i, "r", p.type));
       list.appendChild(row);
     });
     node.appendChild(list);
@@ -449,13 +467,19 @@ window.Rack = (function () {
     document.addEventListener("pointercancel", mu);
   }
 
-  // a single connection pin; the cable layer (later) will anchor to these
-  function pin(devId, portIndex, side) {
+  // a single connection pin; the cable layer (later) will anchor to these.
+  // colour-coded by port type so the routing endpoints read at a glance.
+  function pin(devId, portIndex, side, type) {
     var p = document.createElement("span");
     p.className = "topo-pin topo-pin-" + side;
     p.dataset.dev = devId;
     p.dataset.port = portIndex;
     p.dataset.side = side;
+    if (type) {
+      p.dataset.type = type;
+      p.style.background = window.Ports.color(type);
+      p.style.borderColor = window.Ports.color(type);
+    }
     return p;
   }
 

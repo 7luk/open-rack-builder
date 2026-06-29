@@ -172,6 +172,7 @@ window.Library = (function () {
     el.dataset.color = d.color;
     el.dataset.depth = d.depth || 250;
     el.dataset.rearLabel = d.rearLabel || "";
+    el.dataset.ports = JSON.stringify(d.ports || []);
 
     var swatch = document.createElement("div");
     swatch.className = "lib-swatch";
@@ -221,6 +222,12 @@ window.Library = (function () {
   }
 
   function defFromEl(el) {
+    var ports = [];
+    try {
+      ports = JSON.parse(el.dataset.ports || "[]");
+    } catch (e) {
+      ports = [];
+    }
     return {
       name: el.dataset.name,
       brand: el.dataset.brand,
@@ -228,6 +235,7 @@ window.Library = (function () {
       color: el.dataset.color,
       depth: parseInt(el.dataset.depth, 10) || 250,
       rearLabel: el.dataset.rearLabel || "",
+      ports: ports,
     };
   }
 

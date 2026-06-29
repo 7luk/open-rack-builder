@@ -174,6 +174,7 @@ window.State = (function () {
       slot: slot,
       led: true,
       rearLabel: def.rearLabel || "",
+      ports: normalizePorts(def.ports), // structured connectors (see ports.js)
       image: imageOrNull(def.image),
       imageRear: imageOrNull(def.imageRear),
       topoX: null, // custom topology position (null → default stacked layout)
@@ -266,6 +267,7 @@ window.State = (function () {
       color: def.color || "#2a2a2e",
       depth: clamp(Math.round(Number(def.depth) || 250), 20, 2000),
       rearLabel: def.rearLabel || "",
+      ports: normalizePorts(def.ports),
       image: imageOrNull(def.image),
       imageRear: imageOrNull(def.imageRear),
       custom: true,
@@ -290,6 +292,7 @@ window.State = (function () {
       color: def.color || "#2a2a2e",
       depth: clamp(Math.round(Number(def.depth) || 250), 20, 2000),
       rearLabel: def.rearLabel || "",
+      ports: normalizePorts(def.ports),
       image: null,
       imageRear: null,
       community: true, // came from the shared registry → community flag
@@ -341,6 +344,7 @@ window.State = (function () {
               slot: clamp(Math.round(Number(d.slot) || 1), 1, 60),
               led: d.led !== false,
               rearLabel: d.rearLabel || "",
+              ports: normalizePorts(d.ports),
               image: imageOrNull(d.image),
               imageRear: imageOrNull(d.imageRear),
               topoX: numOrNull(d.topoX),
@@ -358,6 +362,7 @@ window.State = (function () {
               color: c.color || "#2a2a2e",
               depth: clamp(Math.round(Number(c.depth) || 250), 20, 2000),
               rearLabel: c.rearLabel || "",
+              ports: normalizePorts(c.ports),
               image: imageOrNull(c.image),
               imageRear: imageOrNull(c.imageRear),
               community: !!c.community,
@@ -382,6 +387,17 @@ window.State = (function () {
   }
   function numOrNull(v) {
     return typeof v === "number" && isFinite(v) ? v : null;
+  }
+  // sanitise a structured ports list: [{type, label}] (see ports.js)
+  function normalizePorts(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr.slice(0, 256).map(function (p) {
+      p = p || {};
+      return {
+        type: typeof p.type === "string" ? p.type : "other",
+        label: typeof p.label === "string" ? p.label : "",
+      };
+    });
   }
 
   return {
