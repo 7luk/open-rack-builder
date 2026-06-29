@@ -436,3 +436,103 @@
   color: #fff;
   font-weight: 500;
 }
+
+/* ---------- Topology / blueprint view ---------- */
+/* iconic blueprint workplate: deep blue with fine + bold graph-paper grid */
+.canvas.topology {
+  background-color: #0e2c52;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+  background-size: 26px 26px, 26px 26px, 130px 130px, 130px 130px;
+  background-position: center center;
+}
+
+.topo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  padding: 44px;
+}
+.topo-empty {
+  color: rgba(234, 242, 255, 0.72);
+  font-size: 13px;
+  padding: 40px 48px;
+  border: 1px dashed rgba(255, 255, 255, 0.32);
+  border-radius: 12px;
+}
+
+/* a generic device node, blueprint line-art style */
+.topo-node {
+  min-width: 184px;
+  background: rgba(10, 30, 58, 0.72);
+  border: 1px solid rgba(207, 227, 255, 0.55);
+  border-radius: 9px;
+  color: #eaf2ff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.32);
+  cursor: pointer;
+  user-select: none;
+  overflow: visible; /* let the perimeter pins show */
+}
+.topo-node.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 4px 16px rgba(0, 0, 0, 0.32);
+}
+.topo-head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(207, 227, 255, 0.28);
+}
+.topo-name {
+  font-size: 12.5px;
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+}
+.topo-brand {
+  font-size: 10px;
+  color: rgba(207, 227, 255, 0.7);
+  white-space: nowrap;
+}
+.topo-ports {
+  padding: 7px 0;
+}
+.topo-port {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 14px;
+}
+.topo-port-label {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 10.5px;
+  color: rgba(234, 242, 255, 0.92);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.topo-ports.generic .topo-port-label {
+  color: rgba(234, 242, 255, 0.5);
+  font-style: italic; /* generic placeholder ports until rear ports are set */
+}
+.topo-pin {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.5px solid #cfe3ff;
+  background: #0b2545;
+}
+/* straddle the node edges so the cable layer can latch onto the perimeter */
+.topo-pin-l {
+  margin-left: -19px;
+}
+.topo-pin-r {
+  margin-right: -19px;
+}

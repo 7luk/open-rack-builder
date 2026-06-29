@@ -24,7 +24,7 @@ window.State = (function () {
   function defaultState() {
     return {
       projectName: "Untitled rack",
-      view: "front", // front | rear | side
+      view: "front", // front | rear | side | topology
       theme: "light", // light | dark
       rack: {
         size: 12, // number of U rows
@@ -272,7 +272,7 @@ window.State = (function () {
     if (!raw || typeof raw !== "object") return base;
     var out = {
       projectName: raw.projectName || base.projectName,
-      view: ["front", "rear", "side"].indexOf(raw.view) >= 0 ? raw.view : "front",
+      view: ["front", "rear", "side", "topology"].indexOf(raw.view) >= 0 ? raw.view : "front",
       theme: raw.theme === "dark" ? "dark" : "light",
       rack: {
         size: clamp(Math.round(Number(raw.rack && raw.rack.size) || 12), 1, 60),

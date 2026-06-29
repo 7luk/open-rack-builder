@@ -6,7 +6,7 @@
  *
  *   Page 1 — components table (spreadsheet-style grid)
  *   Page 2 — front and rear renders of the rack, side by side
- *   Page 3 — reserved for future content
+ *   Page 3 — signal topology, blueprint style
  */
 window.Exporter = (function () {
   "use strict";
@@ -40,7 +40,7 @@ window.Exporter = (function () {
       "</style></head><body>" +
       pageTable(s) +
       pageRenders(s) +
-      pageFuture(s) +
+      pageTopology(s) +
       "</body></html>"
     );
   }
@@ -211,17 +211,66 @@ window.Exporter = (function () {
     );
   }
 
-  /* ---------- Page 3: reserved ---------- */
-  function pageFuture(s) {
+  /* ---------- Page 3: signal topology (blueprint) ---------- */
+  function pageTopology(s) {
     return (
-      "<section class='page page-break'>" +
+      "<section class='page page-break blueprint'>" +
       "<header><h1>" +
       esc(s.projectName) +
-      "</h1><div class='meta'>Notes</div></header>" +
-      "<div class='reserved'>Reserved for future content</div>" +
-      "<footer>Open Rack Builder — page 3 of 3</footer>" +
+      "</h1><div class='meta'>Signal topology</div></header>" +
+      "<div class='topo-grid'>" +
+      topoNodes(s) +
+      "</div>" +
+      "<footer>Open Rack Builder — page 3 of 3 · topology</footer>" +
       "</section>"
     );
+  }
+
+  function topoNodes(s) {
+    if (!s.devices.length) {
+      return "<div class='bp-empty'>No devices placed.</div>";
+    }
+    return s.devices
+      .slice()
+      .sort(function (a, b) { return a.slot - b.slot; })
+      .map(function (d) {
+        var ports = pdfPorts(d);
+        var rows = ports.list
+          .map(function (p) {
+            return (
+              "<div class='bp-port'><span class='bp-pin'></span>" +
+              "<span class='bp-plabel'>" + esc(p) + "</span>" +
+              "<span class='bp-pin'></span></div>"
+            );
+          })
+          .join("");
+        return (
+          "<div class='bp-node'><div class='bp-node-head'>" +
+          esc(d.name) +
+          (d.brand ? "<span class='bp-node-brand'>" + esc(d.brand) + "</span>" : "") +
+          "</div><div class='bp-ports" + (ports.generic ? " generic" : "") + "'>" +
+          rows +
+          "</div></div>"
+        );
+      })
+      .join("");
+  }
+
+  // mirrors the in-app topology port logic (kept local so the PDF is self-contained)
+  function pdfPorts(d) {
+    var raw = (d.rearLabel || "")
+      .split(",")
+      .map(function (x) { return x.trim(); })
+      .filter(Boolean);
+    if (raw.length) return { list: raw, generic: false };
+    var u = d.u || 1;
+    var gen =
+      u >= 3
+        ? ["In 1", "In 2", "In 3", "Out 1", "Out 2", "Out 3"]
+        : u === 2
+        ? ["In 1", "In 2", "Out 1", "Out 2"]
+        : ["In", "Out"];
+    return { list: gen, generic: true };
   }
 
   /* ---------- styles ---------- */
@@ -254,8 +303,27 @@ window.Exporter = (function () {
       ".dev svg *{vector-effect:non-scaling-stroke;}",
       ".casters{display:flex;justify-content:space-between;padding:2px 14px 0;margin-top:2px;}",
       ".caster{width:22px;height:22px;border-radius:50%;border:1.5px solid #1d1d1f;background:#f6f6f8;}",
-      // reserved page
-      ".reserved{display:flex;align-items:center;justify-content:center;height:60vh;color:#c0c0c6;font-size:14px;letter-spacing:.04em;border:1.5px dashed #dcdce2;border-radius:12px;margin-top:10px;}",
+      // blueprint topology page
+      ".blueprint{background-color:#0e2c52;color:#eaf2ff;-webkit-print-color-adjust:exact;print-color-adjust:exact;" +
+        "background-image:" +
+        "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px)," +
+        "linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)," +
+        "linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px)," +
+        "linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px);" +
+        "background-size:26px 26px,26px 26px,130px 130px,130px 130px;}",
+      ".blueprint h1{color:#fff;}",
+      ".blueprint .meta{color:rgba(234,242,255,.72);}",
+      ".blueprint footer{color:rgba(234,242,255,.6);}",
+      ".topo-grid{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start;margin-top:16px;}",
+      ".bp-node{min-width:170px;background:rgba(10,30,58,.6);border:1px solid rgba(207,227,255,.55);border-radius:9px;overflow:hidden;}",
+      ".bp-node-head{display:flex;flex-direction:column;gap:1px;padding:7px 12px;border-bottom:1px solid rgba(207,227,255,.28);font-weight:600;font-size:12px;}",
+      ".bp-node-brand{font-size:9.5px;color:rgba(207,227,255,.7);font-weight:400;}",
+      ".bp-ports{padding:6px 0;}",
+      ".bp-port{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 12px;}",
+      ".bp-plabel{flex:1 1 auto;text-align:center;font-size:10px;color:rgba(234,242,255,.92);}",
+      ".bp-ports.generic .bp-plabel{color:rgba(234,242,255,.5);font-style:italic;}",
+      ".bp-pin{flex:0 0 auto;width:8px;height:8px;border-radius:50%;border:1.5px solid #cfe3ff;background:#0b2545;}",
+      ".bp-empty{color:rgba(234,242,255,.7);padding:30px 0;}",
       // footer
       "footer{position:absolute;left:40px;bottom:24px;color:#aeaeb2;font-size:11px;}",
       // pagination

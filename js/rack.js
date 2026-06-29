@@ -32,15 +32,22 @@ window.Rack = (function () {
   /* ---------- public render entry ---------- */
   function render() {
     var s = State.get();
+    var isTopo = s.view === "topology";
+    // the canvas wears a blueprint backdrop only in topology mode
+    if (canvas) canvas.classList.toggle("topology", isTopo);
+
     mount.innerHTML = "";
     var unit = document.createElement("div");
     unit.className = "rack-unit";
-    if (s.view === "side") {
+    if (isTopo) {
+      unit.appendChild(buildTopology(s));
+    } else if (s.view === "side") {
       unit.appendChild(buildSide(s));
     } else {
       unit.appendChild(buildRackPlate(s));
     }
-    if (s.rack.wheels) {
+    // wheels belong to the physical elevations, not the topology diagram
+    if (s.rack.wheels && !isTopo) {
       var isSide = s.view === "side";
       unit.appendChild(buildWheels(isSide, isSide ? sidePlatePx(s) : PLATE_PX));
     }
@@ -267,6 +274,98 @@ window.Rack = (function () {
     rack.appendChild(cavity);
     profile.appendChild(rack);
     return profile;
+  }
+
+  /* ---------- topology / signal view ----------
+     A generic, blueprint-style node per device showing its ports as pins.
+     Pins carry data-dev / data-port / data-side so a future cable layer can
+     anchor connections to them. No cables are drawn yet. */
+  function topoPorts(d) {
+    var raw = (d.rearLabel || "")
+      .split(",")
+      .map(function (x) { return x.trim(); })
+      .filter(Boolean);
+    if (raw.length) return { list: raw, generic: false };
+    return { list: genericPorts(d), generic: true };
+  }
+  function genericPorts(d) {
+    var u = d.u || 1;
+    if (u >= 3) return ["In 1", "In 2", "In 3", "Out 1", "Out 2", "Out 3"];
+    if (u === 2) return ["In 1", "In 2", "Out 1", "Out 2"];
+    return ["In", "Out"];
+  }
+
+  function buildTopology(s) {
+    var wrap = document.createElement("div");
+    wrap.className = "topo";
+
+    if (!s.devices.length) {
+      var empty = document.createElement("div");
+      empty.className = "topo-empty";
+      empty.textContent = "Add devices to map their signal topology.";
+      wrap.appendChild(empty);
+      return wrap;
+    }
+
+    // reading order, top of the rack first
+    s.devices
+      .slice()
+      .sort(function (a, b) { return a.slot - b.slot; })
+      .forEach(function (d) {
+        wrap.appendChild(buildTopoNode(d, s));
+      });
+    return wrap;
+  }
+
+  function buildTopoNode(d, s) {
+    var node = document.createElement("div");
+    node.className = "topo-node" + (s.selectedId === d.id ? " selected" : "");
+    node.dataset.id = d.id;
+    node.addEventListener("click", function (e) {
+      e.stopPropagation();
+      State.select(d.id);
+    });
+
+    var head = document.createElement("div");
+    head.className = "topo-head";
+    var nm = document.createElement("span");
+    nm.className = "topo-name";
+    nm.textContent = d.name;
+    head.appendChild(nm);
+    if (d.brand) {
+      var br = document.createElement("span");
+      br.className = "topo-brand";
+      br.textContent = d.brand;
+      head.appendChild(br);
+    }
+    node.appendChild(head);
+
+    var ports = topoPorts(d);
+    var list = document.createElement("div");
+    list.className = "topo-ports" + (ports.generic ? " generic" : "");
+    ports.list.forEach(function (label, i) {
+      var row = document.createElement("div");
+      row.className = "topo-port";
+      row.appendChild(pin(d.id, i, "l"));
+      var lbl = document.createElement("span");
+      lbl.className = "topo-port-label";
+      lbl.textContent = label;
+      row.appendChild(lbl);
+      row.appendChild(pin(d.id, i, "r"));
+      list.appendChild(row);
+    });
+    node.appendChild(list);
+    return node;
+  }
+
+  // a single connection pin; the cable layer (later) will anchor to these
+  function pin(devId, portIndex, side) {
+    var p = document.createElement("span");
+    p.className = "topo-pin topo-pin-" + side;
+    p.dataset.dev = devId;
+    p.dataset.port = portIndex;
+    p.dataset.side = side;
+    return p;
   }
 
   /* ---------- wheels / casters (minimalist) ---------- */

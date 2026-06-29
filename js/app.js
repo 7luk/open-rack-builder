@@ -203,6 +203,9 @@ window.App = (function () {
     "view-side": function () {
       State.setView("side");
     },
+    "view-topology": function () {
+      State.setView("topology");
+    },
     "zoom-reset": Rack.resetZoom,
     "toggle-theme": State.toggleTheme,
     "add-u": function () {
@@ -281,6 +284,7 @@ window.App = (function () {
     { action: "view-front",    key: "1", label: "Front view" },
     { action: "view-rear",     key: "2", label: "Rear view" },
     { action: "view-side",     key: "3", label: "Side view" },
+    { action: "view-topology", key: "4", label: "Topology view" },
     { action: "zoom-reset",    key: "0", label: "Reset zoom" },
     { action: "toggle-theme",  key: "t", label: "Toggle light / dark" },
     // Rack
@@ -406,7 +410,7 @@ window.App = (function () {
     var groups = [
       { title: "File", actions: ["new-project", "save", "import", "export-json", "import-device"] },
       { title: "Edit", actions: ["remove-selected", "deselect", "clear-rack"] },
-      { title: "View", actions: ["view-front", "view-rear", "view-side", "zoom-reset", "toggle-theme"] },
+      { title: "View", actions: ["view-front", "view-rear", "view-side", "view-topology", "zoom-reset", "toggle-theme"] },
       { title: "Rack", actions: ["add-u", "remove-u"] },
       { title: "Export", actions: ["export-pdf"] },
     ];
