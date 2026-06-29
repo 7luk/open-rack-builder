@@ -100,8 +100,12 @@ window.Library = (function () {
     return groups;
   }
 
+  // per-category collapsed state (transient UI; keyed by category name)
+  var collapsed = {};
+
   /* render the list into `container`; `query` is the current search text */
   function render(container, query) {
+    var q = (query || "").trim();
     var groups = grouped(query);
     container.innerHTML = "";
 
@@ -117,14 +121,36 @@ window.Library = (function () {
       if (!items || !items.length) return;
       any = true;
 
-      var head = document.createElement("div");
-      head.className = "lib-category";
-      head.textContent = cat;
+      // an active search forces every matching category open
+      var isCollapsed = !q && !!collapsed[cat];
+
+      var head = document.createElement("button");
+      head.type = "button";
+      head.className = "lib-category" + (isCollapsed ? " collapsed" : "");
+      var caret = document.createElement("span");
+      caret.className = "lib-cat-caret";
+      caret.textContent = "▾";
+      var label = document.createElement("span");
+      label.className = "lib-cat-label";
+      label.textContent = cat;
+      var count = document.createElement("span");
+      count.className = "lib-cat-count";
+      count.textContent = items.length;
+      head.appendChild(caret);
+      head.appendChild(label);
+      head.appendChild(count);
+      head.addEventListener("click", function () {
+        collapsed[cat] = !collapsed[cat];
+        render(container, query);
+      });
       container.appendChild(head);
 
+      var group = document.createElement("div");
+      group.className = "lib-group" + (isCollapsed ? " collapsed" : "");
       items.forEach(function (d) {
-        container.appendChild(itemEl(d));
+        group.appendChild(itemEl(d));
       });
+      container.appendChild(group);
     });
 
     if (!any) {
