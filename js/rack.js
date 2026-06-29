@@ -18,6 +18,10 @@ window.Rack = (function () {
   var zoom = 1;
   var panX = 0; // canvas pan offset, screen px
   var panY = 0;
+  // each view keeps its own pan/zoom so moving the topology doesn't move the
+  // 2D elevations (and vice-versa). zoom/panX/panY above hold the CURRENT view.
+  var viewports = {};
+  var lastView = null;
   var suppressTopoClick = false; // set right after a topo node drag
   var MIN_ZOOM = 0.4;
   var MAX_ZOOM = 3;
@@ -34,6 +38,19 @@ window.Rack = (function () {
   function render() {
     var s = State.get();
     var isTopo = s.view === "topology";
+
+    // per-view viewport: stash the outgoing view's pan/zoom, load the incoming
+    if (s.view !== lastView) {
+      if (lastView !== null) {
+        viewports[lastView] = { zoom: zoom, panX: panX, panY: panY };
+      }
+      var vp = viewports[s.view] || { zoom: 1, panX: 0, panY: 0 };
+      zoom = vp.zoom;
+      panX = vp.panX;
+      panY = vp.panY;
+      lastView = s.view;
+    }
+
     // the canvas wears a blueprint backdrop only in topology mode
     if (canvas) canvas.classList.toggle("topology", isTopo);
 
@@ -573,7 +590,8 @@ window.Rack = (function () {
     // drag empty canvas / plate to pan; a click without movement deselects
     canvas.addEventListener("mousedown", function (e) {
       if (e.button !== 0) return;
-      if (e.target.closest(".device")) return; // devices handle their own drag
+      // devices and topology nodes handle their own drag — don't pan under them
+      if (e.target.closest(".device, .topo-node")) return;
       var startX = e.clientX, startY = e.clientY;
       var baseX = panX, baseY = panY;
       var moved = false;
@@ -617,6 +635,18 @@ window.Rack = (function () {
   function applyTransform() {
     stage.style.transform =
       "translate(" + panX + "px," + panY + "px) scale(" + zoom + ")";
+    // make the blueprint grid pan + scale with the workplate so the checkers
+    // travel with the content instead of the content sliding over a fixed grid
+    if (canvas) {
+      var g1 = 26 * zoom + "px",
+        g2 = 130 * zoom + "px";
+      var px = "calc(50% + " + panX + "px)",
+        py = "calc(50% + " + panY + "px)";
+      var pos = px + " " + py;
+      canvas.style.backgroundSize =
+        g1 + " " + g1 + ", " + g1 + " " + g1 + ", " + g2 + " " + g2 + ", " + g2 + " " + g2;
+      canvas.style.backgroundPosition = pos + ", " + pos + ", " + pos + ", " + pos;
+    }
     if (zoomReadout) zoomReadout.textContent = Math.round(zoom * 100) + "%";
   }
 
